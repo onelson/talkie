@@ -1,5 +1,11 @@
 # talkie
 
+## Dependencies
+
+Consult the amethyst readme for how to install the framework dependencies:
+<https://github.com/amethyst/amethyst/#dependencies>
+
+
 ## How to run
 
 To run the game, run the following command, which defaults to the `vulkan` graphics backend:
