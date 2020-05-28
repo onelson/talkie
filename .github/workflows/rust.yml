@@ -16,6 +16,12 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+    - name: BuildDeps
+      run: |
+        sudo apt-get install -y --no-install-recommends \
+          gcc pkg-config openssl libasound2-dev cmake build-essential python3 \
+          libfreetype6-dev libexpat1-dev libxcb-composite0-dev libssl-dev \
+          libx11-dev
     - name: Build
       run: cargo build --verbose
     - name: Run tests
