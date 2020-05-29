@@ -44,3 +44,8 @@ Seems like we want to have some control over the artwork for dramatic effect.
 
 - Allow user to select from a menu of dialogue options.
 - Branch npc dialogue based on user choices.
+
+
+### Audio Cues
+
+Would be great to get audio to play, triggered by markers in the dialogue text.
