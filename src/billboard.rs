@@ -1,16 +1,27 @@
 //! The "billboard" is the lower half of the window where dialogue text will
 //! appear.
 
-use amethyst::assets::Loader;
-use amethyst::ecs::prelude::{Component, DenseVecStorage, Entity};
-use amethyst::prelude::*;
-use amethyst::ui::{Anchor, LineMode, TtfFormat, UiText, UiTransform};
+use amethyst::{
+    assets::Loader,
+    derive::SystemDesc,
+    ecs::{
+        prelude::{Component, HashMapStorage},
+        Join, System, SystemData, World, WriteStorage,
+    },
+    prelude::*,
+    ui::{Anchor, LineMode, TtfFormat, UiText, UiTransform},
+};
 
 #[derive(Default)]
-pub struct Billboard {}
+pub struct BillboardData {
+    /// the full text to display
+    pub entire_text: String,
+    /// tracks the current length of *displayed text*.
+    pub head: usize,
+}
 
-pub struct BillboardText {
-    pub text: Entity,
+impl Component for BillboardData {
+    type Storage = HashMapStorage<Self>;
 }
 
 static LIPSUM: &str = "\
@@ -42,11 +53,39 @@ pub fn init_billboard(world: &mut World) {
         250.,
     );
 
-    let mut text = UiText::new(font.clone(), LIPSUM.to_string(), [1., 1., 1., 1.], 24.);
-    text.line_mode = LineMode::Wrap;
-    text.align = Anchor::MiddleLeft;
+    let mut ui_text = UiText::new(font.clone(), String::new(), [1., 1., 1., 1.], 24.);
+    ui_text.line_mode = LineMode::Wrap;
+    ui_text.align = Anchor::TopLeft;
 
-    let text_entity = world.create_entity().with(xform).with(text).build();
+    let billboard = world
+        .create_entity()
+        .with(xform)
+        .with(ui_text)
+        .with(BillboardData {
+            entire_text: LIPSUM.to_string(),
+            head: 0,
+        })
+        .build();
 
-    world.insert(BillboardText { text: text_entity });
+    world.insert(billboard);
+}
+
+/// Updates the display of the billboard text.
+#[derive(SystemDesc)]
+pub struct BillboardDisplaySystem;
+
+impl<'s> System<'s> for BillboardDisplaySystem {
+    type SystemData = (WriteStorage<'s, UiText>, WriteStorage<'s, BillboardData>);
+
+    fn run(&mut self, (mut ui_text, mut billboard): Self::SystemData) {
+        // TODO write out one glyph per <unit of time> instead of per tick.
+        for (text, billboard) in (&mut ui_text, &mut billboard).join() {
+            text.text = billboard.entire_text.chars().take(billboard.head).collect();
+            billboard.head = if billboard.head == billboard.entire_text.len() - 1 {
+                0
+            } else {
+                billboard.head + 1
+            };
+        }
+    }
 }
