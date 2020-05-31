@@ -49,3 +49,15 @@ Seems like we want to have some control over the artwork for dramatic effect.
 ### Audio Cues
 
 Would be great to get audio to play, triggered by markers in the dialogue text.
+
+### Branch Configuration
+
+It would be good to have a way to open/close certain branches in a sequence
+based on factors external to the dialogue text itself, such as general
+*game state*.
+
+It's possible this could be solved by splitting the sequence up into smaller
+parts and using actual game state transitions to mix and match arbitrarily.
+Another idea might be to offer a hybrid approach where a series of passages
+could each get tags associated with them, and the caller code could "filter" the
+passages using those tags. 
