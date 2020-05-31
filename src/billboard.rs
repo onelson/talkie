@@ -3,10 +3,9 @@
 
 use amethyst::{
     assets::Loader,
-    derive::SystemDesc,
     ecs::{
         prelude::{Component, HashMapStorage},
-        Join, System, SystemData, World, WriteStorage,
+        World,
     },
     prelude::*,
     ui::{Anchor, LineMode, TtfFormat, UiText, UiTransform},
@@ -68,24 +67,4 @@ pub fn init_billboard(world: &mut World) {
         .build();
 
     world.insert(billboard);
-}
-
-/// Updates the display of the billboard text.
-#[derive(SystemDesc)]
-pub struct BillboardDisplaySystem;
-
-impl<'s> System<'s> for BillboardDisplaySystem {
-    type SystemData = (WriteStorage<'s, UiText>, WriteStorage<'s, BillboardData>);
-
-    fn run(&mut self, (mut ui_text, mut billboard): Self::SystemData) {
-        // TODO write out one glyph per <unit of time> instead of per tick.
-        for (text, billboard) in (&mut ui_text, &mut billboard).join() {
-            text.text = billboard.entire_text.chars().take(billboard.head).collect();
-            billboard.head = if billboard.head == billboard.entire_text.len() - 1 {
-                0
-            } else {
-                billboard.head + 1
-            };
-        }
-    }
 }

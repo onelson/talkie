@@ -12,6 +12,7 @@ use amethyst::{
 };
 
 mod billboard;
+mod systems;
 
 struct MyState;
 
@@ -44,7 +45,7 @@ fn main() -> amethyst::Result<()> {
         .with_bundle(InputBundle::<StringBindings>::new().with_bindings_from_file(bindings_path)?)?
         .with_bundle(TransformBundle::new())?
         .with_bundle(UiBundle::<StringBindings>::new())?
-        .with(billboard::BillboardDisplaySystem, "billboard_display", &[]);
+        .with(systems::BillboardDisplaySystem, "billboard_display", &[]);
 
     let mut game = Application::new(assets_dir, MyState, game_data)?;
     game.run();
