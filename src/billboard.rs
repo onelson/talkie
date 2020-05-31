@@ -1,6 +1,7 @@
 //! The "billboard" is the lower half of the window where dialogue text will
 //! appear.
 
+use crate::dialogue::{DialogueFormat, DialogueHandle};
 use amethyst::{
     assets::Loader,
     ecs::{
@@ -11,31 +12,29 @@ use amethyst::{
     ui::{Anchor, LineMode, TtfFormat, UiText, UiTransform},
 };
 
-#[derive(Default)]
 pub struct BillboardData {
-    /// the full text to display
-    pub entire_text: String,
+    pub dialogue: DialogueHandle,
     /// tracks the current length of *displayed text*.
     pub head: usize,
+    /// tracks which passage we're showing.
+    pub passage: usize,
 }
 
 impl Component for BillboardData {
     type Storage = HashMapStorage<Self>;
 }
 
-static LIPSUM: &str = "\
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. \
-Duis venenatis rutrum sapien, eu vehicula sapien cursus in. \
-Donec vel pulvinar turpis. Aliquam vestibulum gravida nibh interdum malesuada. \
-Sed rutrum orci nec quam aliquam, id consectetur lorem vestibulum. \
-Praesent cursus justo in orci finibus, non porttitor eros pellentesque. \
-Sed bibendum lectus.\
-";
-
 pub fn init_billboard(world: &mut World) {
     let font = world.read_resource::<Loader>().load(
         "font/CC Accidenz Commons-medium.ttf",
         TtfFormat,
+        (),
+        &world.read_resource(),
+    );
+
+    let dialogue = world.read_resource::<Loader>().load(
+        "dialogue/lipsum.dialogue",
+        DialogueFormat,
         (),
         &world.read_resource(),
     );
@@ -61,8 +60,9 @@ pub fn init_billboard(world: &mut World) {
         .with(xform)
         .with(ui_text)
         .with(BillboardData {
-            entire_text: LIPSUM.to_string(),
+            dialogue,
             head: 0,
+            passage: 0,
         })
         .build();
 
