@@ -32,6 +32,6 @@ impl Format<Dialogue> for DialogueFormat {
     }
 
     fn import_simple(&self, bytes: Vec<u8>) -> Result<Dialogue, Error> {
-        Ok(crate::dialogue::parser::parse(&String::from_utf8(bytes)?)?)
+        Ok(parser::parse(&String::from_utf8(bytes)?)?)
     }
 }

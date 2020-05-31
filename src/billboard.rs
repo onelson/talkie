@@ -51,7 +51,7 @@ pub fn init_billboard(world: &mut World) {
         250.,
     );
 
-    let mut ui_text = UiText::new(font.clone(), String::new(), [1., 1., 1., 1.], 24.);
+    let mut ui_text = UiText::new(font, String::new(), [1., 1., 1., 1.], 24.);
     ui_text.line_mode = LineMode::Wrap;
     ui_text.align = Anchor::TopLeft;
 
