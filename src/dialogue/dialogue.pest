@@ -1,0 +1,14 @@
+WHITESPACE = _{ sep }
+/// Using 2 or more newlines as the separator between passages means each one
+/// will have at least one blank line between it and the previous passage.
+sep = _{ NEWLINE{2,} }
+
+passage = @{
+   (!sep ~ ANY)+
+}
+
+root = {
+    SOI ~
+    passage+
+    ~ EOI
+}
