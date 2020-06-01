@@ -18,6 +18,7 @@ pub struct BillboardData {
     pub head: usize,
     /// tracks which passage we're showing.
     pub passage: usize,
+    pub paused: bool,
 }
 
 impl Component for BillboardData {
@@ -63,7 +64,9 @@ pub fn init_billboard(world: &mut World) {
             dialogue,
             head: 0,
             passage: 0,
+            paused: false,
         })
+        .with(crate::action_tracker::ActionTracker::new("confirm"))
         .build();
 
     world.insert(billboard);

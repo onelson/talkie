@@ -13,6 +13,7 @@ use amethyst::{
     utils::application_root_dir,
 };
 
+mod action_tracker;
 mod billboard;
 mod dialogue;
 mod systems;
@@ -49,6 +50,11 @@ fn main() -> amethyst::Result<()> {
         .with_bundle(TransformBundle::new())?
         .with_bundle(UiBundle::<StringBindings>::new())?
         .with(Processor::<Dialogue>::new(), "dialogue_processor", &[])
+        .with(
+            systems::ActionTrackerSystem,
+            "action_tracker",
+            &["input_system"],
+        )
         .with(
             systems::BillboardDisplaySystem,
             "billboard_display",

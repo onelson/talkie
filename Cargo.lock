@@ -3533,6 +3533,7 @@ name = "talkie"
 version = "0.1.0"
 dependencies = [
  "amethyst",
+ "log",
  "pest",
  "pest_derive",
 ]

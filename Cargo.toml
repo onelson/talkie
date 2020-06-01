@@ -8,6 +8,7 @@ edition = "2018"
 amethyst = "0.15.0"
 pest = "2.1.3"
 pest_derive = "2.1.0"
+log = "0.4.8"
 
 [features]
 default = ["vulkan"]
