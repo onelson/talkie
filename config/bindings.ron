@@ -1,4 +1,6 @@
 (
   axes: {},
-  actions: {},
+  actions: {
+    "confirm": [[Key(Space)], [Key(Return)]],
+  },
 )
