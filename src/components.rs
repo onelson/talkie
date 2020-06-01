@@ -1,7 +1,4 @@
-//! The "billboard" is the lower half of the window where dialogue text will
-//! appear.
-
-use crate::dialogue::{DialogueFormat, DialogueHandle};
+use crate::assets::dialogue::{DialogueFormat, DialogueHandle};
 use amethyst::{
     assets::Loader,
     ecs::{
@@ -12,6 +9,34 @@ use amethyst::{
     ui::{Anchor, LineMode, TtfFormat, UiText, UiTransform},
 };
 
+#[derive(Debug, Clone)]
+pub struct ActionTracker {
+    pub action: &'static str,
+    /// True only when the action is pressed after not being pressed previously.
+    pub press_begin: bool,
+    /// True from the very first press up until the press ends.
+    pub pressed: bool,
+    /// Marks the point where the action was just released.
+    pub press_end: bool,
+}
+
+impl ActionTracker {
+    pub fn new(action: &'static str) -> Self {
+        Self {
+            action,
+            press_begin: false,
+            pressed: false,
+            press_end: false,
+        }
+    }
+}
+
+impl Component for ActionTracker {
+    type Storage = HashMapStorage<Self>;
+}
+
+/// The "billboard" is the lower half of the window where dialogue text will
+/// appear.
 pub struct BillboardData {
     pub dialogue: DialogueHandle,
     /// tracks the current length of *displayed text*.
@@ -66,7 +91,7 @@ pub fn init_billboard(world: &mut World) {
             passage: 0,
             paused: false,
         })
-        .with(crate::action_tracker::ActionTracker::new("confirm"))
+        .with(ActionTracker::new("confirm"))
         .build();
 
     world.insert(billboard);

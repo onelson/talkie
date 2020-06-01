@@ -3,9 +3,9 @@
 //! In an ECS, *systems* drive change to the "world" (a collection of entities
 //! and resources) in each tick of the game loop.
 
-use crate::action_tracker::ActionTracker;
-use crate::billboard::BillboardData;
-use crate::dialogue::Dialogue;
+use crate::assets::dialogue::Dialogue;
+use crate::components::ActionTracker;
+use crate::components::BillboardData;
 use amethyst::{
     assets::AssetStorage,
     derive::SystemDesc,
@@ -40,9 +40,7 @@ impl<'s> System<'s> for BillboardDisplaySystem {
             if let Some(dialogue) = dialogues.get(&billboard.dialogue) {
                 // XXX: text/passages should not end up empty. If they are, it
                 // there be a problem with the parser.
-                debug_assert!(!dialogue.passages.is_empty());
                 let entire_text = &dialogue.passages[billboard.passage];
-                debug_assert!(!entire_text.is_empty());
                 text.text = entire_text.chars().take(billboard.head).collect();
 
                 let end_of_text = billboard.head == entire_text.len() - 1;
