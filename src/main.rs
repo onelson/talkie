@@ -1,4 +1,4 @@
-use crate::dialogue::Dialogue;
+use crate::assets::dialogue::Dialogue;
 use amethyst::{
     assets::Processor,
     core::transform::TransformBundle,
@@ -13,16 +13,15 @@ use amethyst::{
     utils::application_root_dir,
 };
 
-mod action_tracker;
-mod billboard;
-mod dialogue;
+mod assets;
+mod components;
 mod systems;
 
 struct MyState;
 
 impl SimpleState for MyState {
     fn on_start(&mut self, data: StateData<'_, GameData<'_, '_>>) {
-        billboard::init_billboard(data.world);
+        components::init_billboard(data.world);
     }
 }
 
