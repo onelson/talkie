@@ -15,7 +15,6 @@ pub fn parse(input: &str) -> Result<Dialogue, Error> {
         match token.as_rule() {
             Rule::passage_group => {
                 let group = build_passage_group(token);
-                debug_assert!(!group.passages.is_empty());
                 ret.passage_groups.push(group);
             }
             Rule::EOI => (),
@@ -26,6 +25,7 @@ pub fn parse(input: &str) -> Result<Dialogue, Error> {
         }
     }
 
+    debug_assert!(!ret.passage_groups.is_empty());
     Ok(ret)
 }
 
@@ -53,6 +53,8 @@ fn build_passage_group(token: Pair<Rule>) -> PassageGroup {
             }
         }
     }
+
+    debug_assert!(!group.passages.is_empty());
     group
 }
 
