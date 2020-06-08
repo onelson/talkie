@@ -1,14 +1,39 @@
-WHITESPACE = _{ sep }
 /// Using 2 or more newlines as the separator between passages means each one
 /// will have at least one blank line between it and the previous passage.
 sep = _{ NEWLINE{2,} }
 
-passage = @{
-   (!sep ~ ANY)+
+
+non_newline = @{
+  (!NEWLINE ~ ANY)
+}
+
+/// yellow
+name = @{  (!"]" ~ non_newline)+  }
+
+
+name_tag = _{"[" ~ name ~ "]"}
+
+/// orange
+speaker = { "::" ~ name_tag }
+
+passage_group = {
+    sep*
+    ~ speaker
+    ~ sep*
+    ~ passages
+}
+
+/// green
+passage = {
+   (!(sep | passage_group) ~ ANY)+ ~ (sep | EOI)
+}
+
+passages = {
+    (!name_tag ~ passage)+
 }
 
 root = {
     SOI ~
-    passage+
+    passage_group+
     ~ EOI
 }

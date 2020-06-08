@@ -13,7 +13,7 @@ use amethyst::{
     input::{InputHandler, StringBindings},
     ui::UiText,
 };
-use log::debug;
+use log::{debug, info};
 
 /// Updates the display of the billboard text.
 #[derive(SystemDesc)]
@@ -37,30 +37,40 @@ impl<'s> System<'s> for BillboardDisplaySystem {
             if billboard.paused {
                 return;
             }
+
             if let Some(dialogue) = dialogues.get(&billboard.dialogue) {
+                let group = &dialogue.passage_groups[billboard.passage_group];
+                info!("{} is speaking", &group.speaker);
                 // XXX: text/passages should not end up empty. If they are, it
                 // there be a problem with the parser.
-                let entire_text = &dialogue.passages[billboard.passage];
+                let entire_text = &group.passages[billboard.passage];
                 text.text = entire_text.chars().take(billboard.head).collect();
 
                 let end_of_text = billboard.head == entire_text.len() - 1;
-                let last_passage = billboard.passage == dialogue.passages.len() - 1;
+                let last_group = billboard.passage_group == dialogue.passage_groups.len() - 1;
+                let last_passage = billboard.passage == group.passages.len() - 1;
 
                 // Go back to the very start if we're at the end of the last
                 // passage.
                 // If we're at the end of any other passage, reset the head
                 // but advance to the next passage.
                 // Otherwise, reveal another glyph of the current passage.
-                match (end_of_text, last_passage) {
-                    (true, true) => {
+                match (end_of_text, last_passage, last_group) {
+                    (true, true, true) => {
                         billboard.head = 0;
+                        billboard.passage_group = 0;
                         billboard.passage = 0;
                     }
-                    (true, false) => {
+                    (true, false, _) => {
                         billboard.head = 0;
                         billboard.passage += 1;
                     }
-                    (false, _) => {
+                    (true, true, false) => {
+                        billboard.head = 0;
+                        billboard.passage_group += 1;
+                        billboard.passage = 0;
+                    }
+                    (false, _, _) => {
                         billboard.head += 1;
                     }
                 }

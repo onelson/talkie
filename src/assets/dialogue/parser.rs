@@ -12,18 +12,39 @@ pub fn parse(input: &str) -> Result<Dialogue, Error> {
 
     for token in root.next().unwrap().into_inner() {
         match token.as_rule() {
-            Rule::passage => {
-                let passage = reformat_passage(token.as_str());
-                debug_assert!(!passage.is_empty());
-                ret.passages.push(passage)
+            Rule::passage_group => {
+                let mut group = super::PassageGroup::default();
+                for token in token.into_inner() {
+                    match token.as_rule() {
+                        Rule::speaker => {
+                            let name = token.into_inner().next().unwrap();
+                            debug_assert_eq!(Rule::name, name.as_rule());
+                            group.speaker.push_str(name.as_str());
+                        }
+                        Rule::passages => {
+                            for token in token.into_inner() {
+                                let passage = reformat_passage(token.as_str());
+                                debug_assert!(!passage.is_empty());
+                                group.passages.push(passage);
+                            }
+                        }
+                        unexpected => {
+                            eprintln!("Found unexpected rule: {:?}", unexpected);
+                            unreachable!();
+                        }
+                    }
+                }
+                debug_assert!(!group.passages.is_empty());
+                ret.passage_groups.push(group);
             }
             Rule::EOI => (),
-            _ => {
+            unexpected => {
+                eprintln!("Found unexpected rule: {:?}", unexpected);
                 unreachable!();
             }
         }
     }
-    debug_assert!(!ret.passages.is_empty());
+
     Ok(ret)
 }
 
