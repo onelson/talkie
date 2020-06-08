@@ -41,6 +41,8 @@ pub struct BillboardData {
     pub dialogue: DialogueHandle,
     /// tracks the current length of *displayed text*.
     pub head: usize,
+    /// tracks which passage group we're iterating through.
+    pub passage_group: usize,
     /// tracks which passage we're showing.
     pub passage: usize,
     pub paused: bool,
@@ -88,6 +90,7 @@ pub fn init_billboard(world: &mut World) {
         .with(BillboardData {
             dialogue,
             head: 0,
+            passage_group: 0,
             passage: 0,
             paused: false,
         })

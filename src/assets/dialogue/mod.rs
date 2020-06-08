@@ -6,11 +6,17 @@ use amethyst::{
     error::Error,
 };
 
-/// A sequence of passages
+/// A sequence of passages, associated with a speaker.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
-pub struct Dialogue {
+pub struct PassageGroup {
+    pub speaker: String,
     /// Blocks of text to show, one by one.
     pub passages: Vec<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct Dialogue {
+    pub passage_groups: Vec<PassageGroup>,
 }
 
 /// A handle to a `Dialogue` asset.
