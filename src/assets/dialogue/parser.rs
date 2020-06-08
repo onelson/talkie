@@ -1,6 +1,7 @@
 use super::Dialogue;
+use super::PassageGroup;
 use amethyst::error::Error;
-use pest::Parser;
+use pest::{iterators::Pair, Parser};
 
 #[derive(pest_derive::Parser)]
 #[grammar = "assets/dialogue/dialogue.pest"]
@@ -13,27 +14,7 @@ pub fn parse(input: &str) -> Result<Dialogue, Error> {
     for token in root.next().unwrap().into_inner() {
         match token.as_rule() {
             Rule::passage_group => {
-                let mut group = super::PassageGroup::default();
-                for token in token.into_inner() {
-                    match token.as_rule() {
-                        Rule::speaker => {
-                            let name = token.into_inner().next().unwrap();
-                            debug_assert_eq!(Rule::name, name.as_rule());
-                            group.speaker.push_str(name.as_str());
-                        }
-                        Rule::passages => {
-                            for token in token.into_inner() {
-                                let passage = reformat_passage(token.as_str());
-                                debug_assert!(!passage.is_empty());
-                                group.passages.push(passage);
-                            }
-                        }
-                        unexpected => {
-                            eprintln!("Found unexpected rule: {:?}", unexpected);
-                            unreachable!();
-                        }
-                    }
-                }
+                let group = build_passage_group(token);
                 debug_assert!(!group.passages.is_empty());
                 ret.passage_groups.push(group);
             }
@@ -46,6 +27,33 @@ pub fn parse(input: &str) -> Result<Dialogue, Error> {
     }
 
     Ok(ret)
+}
+
+/// Traverse a sub-tree of the parsed AST to produce a `PassageGroup`.
+fn build_passage_group(token: Pair<Rule>) -> PassageGroup {
+    debug_assert_eq!(Rule::passage_group, token.as_rule());
+    let mut group = PassageGroup::default();
+    for token in token.into_inner() {
+        match token.as_rule() {
+            Rule::speaker => {
+                let name = token.into_inner().next().unwrap();
+                debug_assert_eq!(Rule::name, name.as_rule());
+                group.speaker.push_str(name.as_str());
+            }
+            Rule::passages => {
+                for token in token.into_inner() {
+                    let passage = reformat_passage(token.as_str());
+                    debug_assert!(!passage.is_empty());
+                    group.passages.push(passage);
+                }
+            }
+            unexpected => {
+                eprintln!("Found unexpected rule: {:?}", unexpected);
+                unreachable!();
+            }
+        }
+    }
+    group
 }
 
 /// Passages are blocks of text separated by 2 or more newlines, but the
