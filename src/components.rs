@@ -6,7 +6,7 @@ use amethyst::{
         World,
     },
     prelude::*,
-    ui::{Anchor, LineMode, TtfFormat, UiText, UiTransform},
+    ui::UiCreator,
 };
 
 #[derive(Debug, Clone)]
@@ -53,13 +53,6 @@ impl Component for BillboardData {
 }
 
 pub fn init_billboard(world: &mut World) {
-    let font = world.read_resource::<Loader>().load(
-        "font/CC Accidenz Commons-medium.ttf",
-        TtfFormat,
-        (),
-        &world.read_resource(),
-    );
-
     let dialogue = world.read_resource::<Loader>().load(
         "dialogue/lipsum.dialogue",
         DialogueFormat,
@@ -67,26 +60,12 @@ pub fn init_billboard(world: &mut World) {
         &world.read_resource(),
     );
 
-    let xform = UiTransform::new(
-        "text".to_string(),
-        Anchor::BottomLeft,
-        Anchor::BottomLeft,
-        5.,
-        5.,
-        1.,
-        // based on a 500x500 window
-        490.,
-        250.,
-    );
-
-    let mut ui_text = UiText::new(font, String::new(), [1., 1., 1., 1.], 24.);
-    ui_text.line_mode = LineMode::Wrap;
-    ui_text.align = Anchor::TopLeft;
+    world.exec(|mut creator: UiCreator<'_>| {
+        creator.create("billboard.ron", ());
+    });
 
     let billboard = world
         .create_entity()
-        .with(xform)
-        .with(ui_text)
         .with(BillboardData {
             dialogue,
             head: 0,

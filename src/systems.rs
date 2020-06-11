@@ -9,9 +9,9 @@ use crate::components::BillboardData;
 use amethyst::{
     assets::AssetStorage,
     derive::SystemDesc,
-    ecs::{Join, Read, ReadStorage, System, SystemData, WriteStorage},
+    ecs::{Join, Read, ReadStorage, System, SystemData, Write, WriteStorage},
     input::{InputHandler, StringBindings},
-    ui::UiText,
+    ui::{UiFinder, UiText},
 };
 use log::{debug, info};
 
@@ -22,14 +22,18 @@ pub struct BillboardDisplaySystem;
 impl<'s> System<'s> for BillboardDisplaySystem {
     type SystemData = (
         WriteStorage<'s, BillboardData>,
-        WriteStorage<'s, UiText>,
         Read<'s, AssetStorage<Dialogue>>,
         ReadStorage<'s, ActionTracker>,
+        UiFinder<'s>,
+        WriteStorage<'s, UiText>,
     );
 
-    fn run(&mut self, (mut billboard, mut ui_text, dialogues, action_tracker): Self::SystemData) {
+    fn run(
+        &mut self,
+        (mut billboard, dialogues, action_tracker, ui_finder, mut ui_text): Self::SystemData,
+    ) {
         // TODO write out one glyph per <unit of time> instead of per tick.
-        for (text, billboard, tracker) in (&mut ui_text, &mut billboard, &action_tracker).join() {
+        for (billboard, tracker) in (&mut billboard, &action_tracker).join() {
             if tracker.press_begin {
                 billboard.paused = !billboard.paused;
             }
@@ -37,6 +41,15 @@ impl<'s> System<'s> for BillboardDisplaySystem {
             if billboard.paused {
                 return;
             }
+
+            let text = match ui_finder
+                .find("dialogue_text")
+                .and_then(|e| ui_text.get_mut(e))
+            {
+                Some(t) => t,
+                // bail if we don't have a text display component to write to.
+                None => return,
+            };
 
             if let Some(dialogue) = dialogues.get(&billboard.dialogue) {
                 let group = &dialogue.passage_groups[billboard.passage_group];
