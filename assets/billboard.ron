@@ -1,0 +1,53 @@
+#![enable(implicit_some)]
+Container(
+    transform: (
+        id: "billboard_root",
+        x: 0.,
+        y: 0.,
+        z: 0.,
+        anchor: BottomLeft,
+        pivot: BottomLeft,
+    ),
+    children: [
+        Label(
+            transform: (
+                id: "speaker_name",
+                x: 5.,
+                y: 210.,
+                z: 0.,
+                width: 490.,
+                height: 30.,
+                anchor: BottomLeft,
+                pivot: BottomLeft,
+            ),
+            text: (
+                font: File("font/CC Accidenz Commons-medium.ttf", ("TTF", ())),
+                font_size: 16.,
+                color: (.9, .9, 1.0, 1.0),
+                text: "// Speaker Name",
+                line_mode: Wrap,
+                align: BottomLeft,
+            )
+        ),
+        Label(
+            transform: (
+                id: "dialogue_text",
+                x: 5.,
+                y: 5.,
+                z: 0.,
+                width: 490.,
+                height: 200.,
+                anchor: BottomLeft,
+                pivot: BottomLeft,
+            ),
+            text: (
+                font: File("font/CC Accidenz Commons-medium.ttf", ("TTF", ())),
+                font_size: 20.,
+                color: (1.0, 1.0, 1.0, 1.0),
+                text: "dialogue text",
+                line_mode: Wrap,
+                align: TopLeft,
+            )
+        ),
+    ],
+)
