@@ -42,22 +42,37 @@ impl<'s> System<'s> for BillboardDisplaySystem {
                 return;
             }
 
-            let text = match ui_finder
-                .find("dialogue_text")
-                .and_then(|e| ui_text.get_mut(e))
-            {
-                Some(t) => t,
-                // bail if we don't have a text display component to write to.
-                None => return,
-            };
-
             if let Some(dialogue) = dialogues.get(&billboard.dialogue) {
                 let group = &dialogue.passage_groups[billboard.passage_group];
-                info!("{} is speaking", &group.speaker);
+
+                {
+                    match ui_finder
+                        .find("speaker_name")
+                        .and_then(|e| ui_text.get_mut(e))
+                    {
+                        Some(t) => {
+                            t.text = format!("// {}", &group.speaker);
+                        }
+                        // bail if we don't have a text display component to write to.
+                        None => return,
+                    }
+                }
+
                 // XXX: text/passages should not end up empty. If they are, it
                 // there be a problem with the parser.
                 let entire_text = &group.passages[billboard.passage];
-                text.text = entire_text.chars().take(billboard.head).collect();
+                {
+                    match ui_finder
+                        .find("dialogue_text")
+                        .and_then(|e| ui_text.get_mut(e))
+                    {
+                        Some(t) => {
+                            t.text = entire_text.chars().take(billboard.head).collect();
+                        }
+                        // bail if we don't have a text display component to write to.
+                        None => return,
+                    }
+                }
 
                 let end_of_text = billboard.head == entire_text.len() - 1;
                 let last_group = billboard.passage_group == dialogue.passage_groups.len() - 1;
