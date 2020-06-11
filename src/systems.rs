@@ -9,11 +9,11 @@ use crate::components::BillboardData;
 use amethyst::{
     assets::AssetStorage,
     derive::SystemDesc,
-    ecs::{Join, Read, ReadStorage, System, SystemData, Write, WriteStorage},
+    ecs::{Join, Read, ReadStorage, System, SystemData, WriteStorage},
     input::{InputHandler, StringBindings},
     ui::{UiFinder, UiText},
 };
-use log::{debug, info};
+use log::debug;
 
 /// Updates the display of the billboard text.
 #[derive(SystemDesc)]
