@@ -54,7 +54,7 @@ impl Component for BillboardData {
 
 pub fn init_billboard(world: &mut World) {
     let dialogue = world.read_resource::<Loader>().load(
-        "dialogue/lipsum.dialogue",
+        "dialogue/mgs3-body-snatchers.dialogue",
         DialogueFormat,
         (),
         &world.read_resource(),
