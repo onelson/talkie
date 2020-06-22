@@ -8,6 +8,7 @@ use crate::components::ActionTracker;
 use crate::components::BillboardData;
 use amethyst::{
     assets::AssetStorage,
+    core::timing::Time,
     derive::SystemDesc,
     ecs::{Join, Read, ReadStorage, System, SystemData, WriteStorage},
     input::{InputHandler, StringBindings},
@@ -19,6 +20,9 @@ use log::debug;
 #[derive(SystemDesc)]
 pub struct BillboardDisplaySystem;
 
+/// A new glyph is revealed when this amount of time has passed.
+const GLYPH_PERIOD_SECS: f32 = 0.2;
+
 impl<'s> System<'s> for BillboardDisplaySystem {
     type SystemData = (
         WriteStorage<'s, BillboardData>,
@@ -26,11 +30,12 @@ impl<'s> System<'s> for BillboardDisplaySystem {
         ReadStorage<'s, ActionTracker>,
         UiFinder<'s>,
         WriteStorage<'s, UiText>,
+        Read<'s, Time>,
     );
 
     fn run(
         &mut self,
-        (mut billboard, dialogues, action_tracker, ui_finder, mut ui_text): Self::SystemData,
+        (mut billboard, dialogues, action_tracker, ui_finder, mut ui_text, time): Self::SystemData,
     ) {
         // TODO write out one glyph per <unit of time> instead of per tick.
         for (billboard, tracker) in (&mut billboard, &action_tracker).join() {
@@ -68,32 +73,42 @@ impl<'s> System<'s> for BillboardDisplaySystem {
                     return;
                 }
 
-                let end_of_text = billboard.head == entire_text.len() - 1;
-                let last_group = billboard.passage_group == dialogue.passage_groups.len() - 1;
-                let last_passage = billboard.passage == group.passages.len() - 1;
+                let mut since = billboard.secs_since_last_reveal.unwrap_or_default();
+                since += time.delta_seconds();
 
-                // Go back to the very start if we're at the end of the last
-                // passage.
-                // If we're at the end of any other passage, reset the head
-                // but advance to the next passage.
-                // Otherwise, reveal another glyph of the current passage.
-                match (end_of_text, last_passage, last_group) {
-                    (true, true, true) => {
-                        billboard.head = 0;
-                        billboard.passage_group = 0;
-                        billboard.passage = 0;
-                    }
-                    (true, false, _) => {
-                        billboard.head = 0;
-                        billboard.passage += 1;
-                    }
-                    (true, true, false) => {
-                        billboard.head = 0;
-                        billboard.passage_group += 1;
-                        billboard.passage = 0;
-                    }
-                    (false, _, _) => {
-                        billboard.head += 1;
+                let reveal_how_many = (since / GLYPH_PERIOD_SECS).trunc() as usize;
+                let remainder = since % GLYPH_PERIOD_SECS;
+
+                billboard.secs_since_last_reveal = Some(remainder);
+
+                for _ in 0..reveal_how_many {
+                    let end_of_text = billboard.head == entire_text.len() - 1;
+                    let last_group = billboard.passage_group == dialogue.passage_groups.len() - 1;
+                    let last_passage = billboard.passage == group.passages.len() - 1;
+
+                    // Go back to the very start if we're at the end of the last
+                    // passage.
+                    // If we're at the end of any other passage, reset the head
+                    // but advance to the next passage.
+                    // Otherwise, reveal another glyph of the current passage.
+                    match (end_of_text, last_passage, last_group) {
+                        (true, true, true) => {
+                            billboard.head = 0;
+                            billboard.passage_group = 0;
+                            billboard.passage = 0;
+                        }
+                        (true, false, _) => {
+                            billboard.head = 0;
+                            billboard.passage += 1;
+                        }
+                        (true, true, false) => {
+                            billboard.head = 0;
+                            billboard.passage_group += 1;
+                            billboard.passage = 0;
+                        }
+                        (false, _, _) => {
+                            billboard.head += 1;
+                        }
                     }
                 }
             }

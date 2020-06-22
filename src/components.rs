@@ -46,6 +46,11 @@ pub struct BillboardData {
     /// tracks which passage we're showing.
     pub passage: usize,
     pub paused: bool,
+    /// tracks the time since the last glyph was revealed.
+    // XXX: We could default this to 0.0 and not bother with the Option, but
+    //  I thought it might be interesting to be able to know when we're starting
+    //  totally from scratch vs rolling over from a previous iteration.
+    pub secs_since_last_reveal: Option<f32>,
 }
 
 impl Component for BillboardData {
@@ -72,6 +77,7 @@ pub fn init_billboard(world: &mut World) {
             passage_group: 0,
             passage: 0,
             paused: false,
+            secs_since_last_reveal: None,
         })
         .with(ActionTracker::new("confirm"))
         .build();
