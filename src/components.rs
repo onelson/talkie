@@ -6,6 +6,7 @@ use amethyst::{
         World,
     },
     prelude::*,
+    renderer::Transparent,
     ui::UiCreator,
 };
 
@@ -71,6 +72,7 @@ pub fn init_billboard(world: &mut World) {
 
     let billboard = world
         .create_entity()
+        .with(Transparent)
         .with(BillboardData {
             dialogue,
             head: 0,
