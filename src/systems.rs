@@ -18,7 +18,9 @@ use log::debug;
 
 /// Updates the display of the billboard text.
 #[derive(SystemDesc)]
-pub struct BillboardDisplaySystem;
+pub struct BillboardDisplaySystem {
+    pub glyph_speed: Option<f32>,
+}
 
 /// A new glyph is revealed when this amount of time has passed.
 const GLYPH_PERIOD_SECS: f32 = 0.2;
@@ -76,8 +78,9 @@ impl<'s> System<'s> for BillboardDisplaySystem {
                 let mut since = billboard.secs_since_last_reveal.unwrap_or_default();
                 since += time.delta_seconds();
 
-                let reveal_how_many = (since / GLYPH_PERIOD_SECS).trunc() as usize;
-                let remainder = since % GLYPH_PERIOD_SECS;
+                let glyph_speed = self.glyph_speed.unwrap_or(GLYPH_PERIOD_SECS);
+                let reveal_how_many = (since / glyph_speed).trunc() as usize;
+                let remainder = since % glyph_speed;
 
                 billboard.secs_since_last_reveal = Some(remainder);
 

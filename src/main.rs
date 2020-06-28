@@ -55,7 +55,11 @@ fn main() -> amethyst::Result<()> {
             &["input_system"],
         )
         .with(
-            systems::BillboardDisplaySystem,
+            systems::BillboardDisplaySystem {
+                glyph_speed: std::env::var("TALKIE_SPEED")
+                    .map(|s| s.parse().expect("invalid speed."))
+                    .ok(),
+            },
             "billboard_display",
             &["dialogue_processor"],
         );
