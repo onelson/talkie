@@ -15,15 +15,10 @@ use amethyst::{
 
 mod assets;
 mod components;
+mod states;
 mod systems;
 
-struct MyState;
-
-impl SimpleState for MyState {
-    fn on_start(&mut self, data: StateData<'_, GameData<'_, '_>>) {
-        components::init_billboard(data.world);
-    }
-}
+use states::MyState;
 
 fn main() -> amethyst::Result<()> {
     amethyst::start_logger(Default::default());
