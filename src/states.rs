@@ -1,5 +1,5 @@
 use crate::assets::dialogue::{DialogueFormat, DialogueHandle};
-use crate::components::{ActionTracker, BillboardData};
+use crate::components::ActionTracker;
 use amethyst::{
     assets::{Loader, ProgressCounter},
     ecs::prelude::{Builder, WorldExt},
@@ -8,6 +8,25 @@ use amethyst::{
     ui::UiCreator,
     SimpleTrans, Trans,
 };
+
+/// The "billboard" is the lower half of the window where dialogue text will
+/// appear.
+#[derive(Default)]
+pub struct BillboardData {
+    pub dialogue_id: u32,
+    /// tracks the current length of *displayed text*.
+    pub head: usize,
+    /// tracks which passage group we're iterating through.
+    pub passage_group: usize,
+    /// tracks which passage we're showing.
+    pub passage: usize,
+    pub paused: bool,
+    /// tracks the time since the last glyph was revealed.
+    // XXX: We could default this to 0.0 and not bother with the Option, but
+    //  I thought it might be interesting to be able to know when we're starting
+    //  totally from scratch vs rolling over from a previous iteration.
+    pub secs_since_last_reveal: Option<f32>,
+}
 
 /// Load up the dialogue from disk.
 pub struct LoadingState {
@@ -57,6 +76,15 @@ impl SimpleState for PlaybackState {
     fn on_start(&mut self, data: StateData<'_, GameData<'_, '_>>) {
         let world = data.world;
 
+        world.insert(BillboardData {
+            dialogue_id: self.dialogue_handle.id(),
+            head: 0,
+            passage_group: 0,
+            passage: 0,
+            paused: false,
+            secs_since_last_reveal: None,
+        });
+
         world.exec(|mut creator: UiCreator<'_>| {
             creator.create("billboard.ron", ());
         });
@@ -64,14 +92,6 @@ impl SimpleState for PlaybackState {
         let billboard = world
             .create_entity()
             .with(Transparent)
-            .with(BillboardData {
-                dialogue: self.dialogue_handle.clone(),
-                head: 0,
-                passage_group: 0,
-                passage: 0,
-                paused: false,
-                secs_since_last_reveal: None,
-            })
             .with(ActionTracker::new("confirm"))
             .build();
 

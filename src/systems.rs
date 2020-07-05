@@ -5,12 +5,12 @@
 
 use crate::assets::dialogue::Dialogue;
 use crate::components::ActionTracker;
-use crate::components::BillboardData;
+use crate::states::BillboardData;
 use amethyst::{
     assets::AssetStorage,
     core::timing::Time,
     derive::SystemDesc,
-    ecs::{Join, Read, ReadStorage, System, SystemData, WriteStorage},
+    ecs::{Join, Read, ReadStorage, System, SystemData, Write, WriteStorage},
     input::{InputHandler, StringBindings},
     ui::{UiFinder, UiText},
 };
@@ -27,7 +27,7 @@ const GLYPH_PERIOD_SECS: f32 = 0.2;
 
 impl<'s> System<'s> for BillboardDisplaySystem {
     type SystemData = (
-        WriteStorage<'s, BillboardData>,
+        Write<'s, BillboardData>,
         Read<'s, AssetStorage<Dialogue>>,
         ReadStorage<'s, ActionTracker>,
         UiFinder<'s>,
@@ -39,8 +39,7 @@ impl<'s> System<'s> for BillboardDisplaySystem {
         &mut self,
         (mut billboard, dialogues, action_tracker, ui_finder, mut ui_text, time): Self::SystemData,
     ) {
-        // TODO write out one glyph per <unit of time> instead of per tick.
-        for (billboard, tracker) in (&mut billboard, &action_tracker).join() {
+        for tracker in (&action_tracker).join() {
             if tracker.press_begin {
                 billboard.paused = !billboard.paused;
             }
@@ -49,7 +48,7 @@ impl<'s> System<'s> for BillboardDisplaySystem {
                 return;
             }
 
-            if let Some(dialogue) = dialogues.get(&billboard.dialogue) {
+            if let Some(dialogue) = dialogues.get_by_id(billboard.dialogue_id) {
                 let group = &dialogue.passage_groups[billboard.passage_group];
 
                 if ui_finder
