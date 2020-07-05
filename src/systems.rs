@@ -61,19 +61,6 @@ impl<'s> System<'s> for BillboardDisplaySystem {
                     return;
                 }
 
-                // XXX: text/passages should not end up empty. If they are, it
-                // there be a problem with the parser.
-                let entire_text = &group.passages[billboard.passage];
-                if ui_finder
-                    .find("dialogue_text")
-                    .and_then(|e| ui_text.get_mut(e))
-                    .map(|t| t.text = entire_text.chars().take(billboard.head).collect())
-                    .is_none()
-                {
-                    // bail if we don't have a text display component to write to.
-                    return;
-                }
-
                 let mut since = billboard.secs_since_last_reveal.unwrap_or_default();
                 since += time.delta_seconds();
 
@@ -83,34 +70,14 @@ impl<'s> System<'s> for BillboardDisplaySystem {
 
                 billboard.secs_since_last_reveal = Some(remainder);
 
-                for _ in 0..reveal_how_many {
-                    let end_of_text = billboard.head == entire_text.len() - 1;
-                    let last_group = billboard.passage_group == dialogue.passage_groups.len() - 1;
-                    let last_passage = billboard.passage == group.passages.len() - 1;
+                // XXX: text/passages should not end up empty. If they are, it
+                // there be a problem with the parser.
+                let entire_text = &group.passages[billboard.passage];
 
-                    // Go back to the very start if we're at the end of the last
-                    // passage.
-                    // If we're at the end of any other passage, reset the head
-                    // but advance to the next passage.
-                    // Otherwise, reveal another glyph of the current passage.
-                    match (end_of_text, last_passage, last_group) {
-                        (true, true, true) => {
-                            billboard.head = 0;
-                            billboard.passage_group = 0;
-                            billboard.passage = 0;
-                        }
-                        (true, false, _) => {
-                            billboard.head = 0;
-                            billboard.passage += 1;
-                        }
-                        (true, true, false) => {
-                            billboard.head = 0;
-                            billboard.passage_group += 1;
-                            billboard.passage = 0;
-                        }
-                        (false, _, _) => {
-                            billboard.head += 1;
-                        }
+                if let Some(entity) = ui_finder.find("dialogue_text") {
+                    if let Some(t) = ui_text.get_mut(entity) {
+                        billboard.head += reveal_how_many; // Only advance if we can update the display
+                        t.text = entire_text.chars().take(billboard.head).collect();
                     }
                 }
             }
