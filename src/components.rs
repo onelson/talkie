@@ -1,14 +1,5 @@
-use crate::assets::dialogue::{DialogueFormat, DialogueHandle};
-use amethyst::{
-    assets::Loader,
-    ecs::{
-        prelude::{Component, HashMapStorage},
-        World,
-    },
-    prelude::*,
-    renderer::Transparent,
-    ui::UiCreator,
-};
+use crate::assets::dialogue::DialogueHandle;
+use amethyst::ecs::prelude::{Component, HashMapStorage};
 
 #[derive(Debug, Clone)]
 pub struct ActionTracker {
@@ -56,33 +47,4 @@ pub struct BillboardData {
 
 impl Component for BillboardData {
     type Storage = HashMapStorage<Self>;
-}
-
-pub fn init_billboard(world: &mut World) {
-    let dialogue = world.read_resource::<Loader>().load(
-        "dialogue/mgs3-body-snatchers.dialogue",
-        DialogueFormat,
-        (),
-        &world.read_resource(),
-    );
-
-    world.exec(|mut creator: UiCreator<'_>| {
-        creator.create("billboard.ron", ());
-    });
-
-    let billboard = world
-        .create_entity()
-        .with(Transparent)
-        .with(BillboardData {
-            dialogue,
-            head: 0,
-            passage_group: 0,
-            passage: 0,
-            paused: false,
-            secs_since_last_reveal: None,
-        })
-        .with(ActionTracker::new("confirm"))
-        .build();
-
-    world.insert(billboard);
 }

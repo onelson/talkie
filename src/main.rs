@@ -18,7 +18,7 @@ mod components;
 mod states;
 mod systems;
 
-use states::MyState;
+use states::LoadingState;
 
 fn main() -> amethyst::Result<()> {
     amethyst::start_logger(Default::default());
@@ -59,7 +59,11 @@ fn main() -> amethyst::Result<()> {
             &["dialogue_processor"],
         );
 
-    let mut game = Application::new(assets_dir, MyState, game_data)?;
+    let mut game = Application::new(
+        assets_dir,
+        LoadingState::new("dialogue/mgs3-body-snatchers.dialogue"),
+        game_data,
+    )?;
     game.run();
 
     Ok(())
