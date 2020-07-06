@@ -3,10 +3,10 @@ use crate::components::ActionTracker;
 use amethyst::{
     assets::{AssetStorage, Loader, ProgressCounter},
     core::timing::Time,
-    ecs::prelude::{Builder, WorldExt},
+    ecs::prelude::{Builder, Entity, WorldExt},
     prelude::{GameData, SimpleState, StateData},
     renderer::Transparent,
-    ui::UiCreator,
+    ui::{UiCreator, UiFinder, UiText},
     SimpleTrans, Trans,
 };
 
@@ -21,7 +21,6 @@ pub struct BillboardData {
     pub passage_group: usize,
     /// tracks which passage we're showing.
     pub passage: usize,
-    pub paused: bool,
     /// tracks the time since the last glyph was revealed.
     // XXX: We could default this to 0.0 and not bother with the Option, but
     //  I thought it might be interesting to be able to know when we're starting
@@ -61,6 +60,11 @@ impl SimpleState for LoadingState {
         if self.progress_counter.is_complete() {
             Trans::Switch(Box::new(PlaybackState {
                 dialogue_handle: self.dialogue_handle.take().unwrap(),
+                glyph_speed: std::env::var("TALKIE_SPEED")
+                    .map(|s| s.parse().expect("invalid speed."))
+                    .ok(),
+                speaker_name_txt: None,
+                dialogue_txt: None,
             }))
         } else {
             Trans::None
@@ -71,36 +75,42 @@ impl SimpleState for LoadingState {
 /// Render the dialogue text over time.
 struct PlaybackState {
     dialogue_handle: DialogueHandle,
+    glyph_speed: Option<f32>,
+    speaker_name_txt: Option<Entity>,
+    dialogue_txt: Option<Entity>,
 }
+
+/// A new glyph is revealed when this amount of time has passed.
+const GLYPH_PERIOD_SECS: f32 = 0.2;
 
 impl SimpleState for PlaybackState {
     fn on_start(&mut self, data: StateData<'_, GameData<'_, '_>>) {
         let world = data.world;
-
         world.insert(BillboardData {
             dialogue_id: self.dialogue_handle.id(),
             head: 0,
             passage_group: 0,
             passage: 0,
-            paused: false,
             secs_since_last_reveal: None,
         });
-
         world.exec(|mut creator: UiCreator<'_>| {
             creator.create("billboard.ron", ());
         });
-
         let billboard = world
             .create_entity()
             .with(Transparent)
             .with(ActionTracker::new("confirm"))
             .build();
-
         world.insert(billboard);
     }
 
     fn fixed_update(&mut self, data: StateData<'_, GameData<'_, '_>>) -> SimpleTrans {
-        let mut billboard = data.world.write_resource::<BillboardData>();
+        if self.speaker_name_txt.or(self.dialogue_txt).is_none() {
+            // bail early if we haven't loaded the ui yet.
+            return Trans::None;
+        }
+
+        let billboard = &mut data.world.write_resource::<BillboardData>();
         let dialogue_storage = data.world.read_resource::<AssetStorage<Dialogue>>();
         let dialogue = dialogue_storage
             .get_by_id(self.dialogue_handle.id())
@@ -112,6 +122,37 @@ impl SimpleState for PlaybackState {
         let entire_text = &group.passages[billboard.passage];
 
         if billboard.head < entire_text.len() {
+            let mut ui_text = data.world.write_storage::<UiText>();
+            let time = data.world.read_resource::<Time>();
+
+            let group = &dialogue.passage_groups[billboard.passage_group];
+
+            if self
+                .speaker_name_txt
+                .and_then(|e| ui_text.get_mut(e))
+                .map(|t| t.text = format!("// {}", &group.speaker))
+                .is_some()
+            {
+                let mut since = billboard.secs_since_last_reveal.unwrap_or_default();
+                since += time.delta_seconds();
+
+                let glyph_speed = self.glyph_speed.unwrap_or(GLYPH_PERIOD_SECS);
+                let reveal_how_many = (since / glyph_speed).trunc() as usize;
+                let remainder = since % glyph_speed;
+
+                billboard.secs_since_last_reveal = Some(remainder);
+
+                // XXX: text/passages should not end up empty. If they are, it
+                // there be a problem with the parser.
+                let entire_text = &group.passages[billboard.passage];
+
+                if let Some(entity) = self.dialogue_txt {
+                    if let Some(t) = ui_text.get_mut(entity) {
+                        billboard.head += reveal_how_many; // Only advance if we can update the display
+                        t.text = entire_text.chars().take(billboard.head).collect();
+                    }
+                }
+            }
             Trans::None
         } else {
             let last_group = billboard.passage_group == dialogue.passage_groups.len() - 1;
@@ -140,6 +181,18 @@ impl SimpleState for PlaybackState {
             }
 
             Trans::Push(Box::new(SleepState::new(3.0))) // FIXME: transition to waiting for user input
+        }
+    }
+
+    fn shadow_update(&mut self, data: StateData<'_, GameData<'_, '_>>) {
+        // FIXME: think about moving this into the loading state
+        //  Will need to figure out how to hide the UI elements until "on_start" fires in playback
+        //  to do this.
+        if self.speaker_name_txt.or(self.dialogue_txt).is_none() {
+            data.world.exec(|ui_finder: UiFinder| {
+                self.speaker_name_txt = ui_finder.find("speaker_name");
+                self.dialogue_txt = ui_finder.find("dialogue_text");
+            });
         }
     }
 }

@@ -39,7 +39,7 @@ Container(
                 font: File("font/CC Accidenz Commons-medium.ttf", ("TTF", ())),
                 font_size: 16.,
                 color: (0.04, 0.14, 0.04, 1.),
-                text: "// Speaker Name",
+                text: "",
                 line_mode: Wrap,
                 align: BottomLeft,
             )
@@ -59,7 +59,7 @@ Container(
                 font: File("font/CC Accidenz Commons-medium.ttf", ("TTF", ())),
                 font_size: 20.,
                 color: (0.04, 0.14, 0.04, 1.),
-                text: "dialogue text",
+                text: "",
                 line_mode: Wrap,
                 align: TopLeft,
             )
