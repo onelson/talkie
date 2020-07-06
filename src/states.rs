@@ -2,6 +2,7 @@ use crate::assets::dialogue::{Dialogue, DialogueFormat, DialogueHandle};
 use crate::components::ActionTracker;
 use amethyst::{
     assets::{AssetStorage, Loader, ProgressCounter},
+    core::timing::Time,
     ecs::prelude::{Builder, WorldExt},
     prelude::{GameData, SimpleState, StateData},
     renderer::Transparent,
@@ -138,7 +139,36 @@ impl SimpleState for PlaybackState {
                 }
             }
 
-            Trans::None // FIXME: transition to waiting for user input
+            Trans::Push(Box::new(SleepState::new(3.0))) // FIXME: transition to waiting for user input
+        }
+    }
+}
+
+#[derive(Default)]
+struct SleepState {
+    /// How many seconds to wait before "popping" to return to the previous state.
+    sleep_duration: f32,
+    /// How long this state has slept for.
+    acc: f32,
+}
+
+impl SleepState {
+    pub fn new(sleep_duration: f32) -> SleepState {
+        SleepState {
+            sleep_duration,
+            ..Default::default()
+        }
+    }
+}
+
+impl SimpleState for SleepState {
+    fn update(&mut self, data: &mut StateData<'_, GameData<'_, '_>>) -> SimpleTrans {
+        if self.acc < self.sleep_duration {
+            let time = data.world.read_resource::<Time>();
+            self.acc += time.delta_seconds();
+            Trans::None
+        } else {
+            Trans::Pop
         }
     }
 }
