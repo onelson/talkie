@@ -4,6 +4,7 @@ use amethyst::{
     assets::{AssetStorage, Loader, ProgressCounter},
     core::timing::Time,
     ecs::prelude::{Builder, Entity, WorldExt},
+    input::{InputHandler, StringBindings},
     prelude::{GameData, SimpleState, StateData},
     renderer::Transparent,
     ui::{UiCreator, UiFinder, UiText},
@@ -180,7 +181,7 @@ impl SimpleState for PlaybackState {
                 }
             }
 
-            Trans::Push(Box::new(SleepState::new(3.0))) // FIXME: transition to waiting for user input
+            Trans::Push(Box::new(PromptState::new("confirm")))
         }
     }
 
@@ -222,6 +223,30 @@ impl SimpleState for SleepState {
             Trans::None
         } else {
             Trans::Pop
+        }
+    }
+}
+
+struct PromptState {
+    tracker: ActionTracker,
+}
+
+impl PromptState {
+    pub fn new(action: &str) -> PromptState {
+        PromptState {
+            tracker: ActionTracker::new(action),
+        }
+    }
+}
+
+impl SimpleState for PromptState {
+    fn update(&mut self, data: &mut StateData<'_, GameData<'_, '_>>) -> SimpleTrans {
+        let input = data.world.read_resource::<InputHandler<StringBindings>>();
+        self.tracker.update(&input);
+        if self.tracker.press_begin() {
+            Trans::Pop
+        } else {
+            Trans::None
         }
     }
 }
