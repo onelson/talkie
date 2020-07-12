@@ -6,8 +6,12 @@ use amethyst::{
     ecs::prelude::{Builder, Entity, WorldExt},
     input::{InputHandler, StringBindings},
     prelude::{GameData, SimpleState, StateData},
-    renderer::Transparent,
+    renderer::{
+        camera::{Camera, Projection},
+        Transparent,
+    },
     ui::{UiCreator, UiFinder, UiText},
+    window::ScreenDimensions,
     SimpleTrans, Trans,
 };
 
@@ -55,6 +59,21 @@ impl SimpleState for LoadingState {
             &mut self.progress_counter,
             &world.read_resource(),
         ));
+
+        let (width, height) = {
+            let dim = world.read_resource::<ScreenDimensions>();
+            (dim.width(), dim.height())
+        };
+
+        // Translate the camera to Z coordinate 10.0, and it looks back toward
+        // the origin with depth 20.0
+        let mut transform = Transform::default();
+        transform.set_translation_xyz(0., 0., 10.);
+
+        let mut camera = Camera::standard_3d(width, height);
+        camera.set_projection(Projection::orthographic(0., width, 0., height, 0.0, 20.0));
+
+        let _camera = world.create_entity().with(transform).with(camera).build();
     }
 
     fn fixed_update(&mut self, _data: StateData<'_, GameData<'_, '_>>) -> SimpleTrans {
