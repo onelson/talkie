@@ -2,7 +2,7 @@ use crate::assets::dialogue::{Dialogue, DialogueFormat, DialogueHandle};
 use crate::components::ActionTracker;
 use amethyst::{
     assets::{AssetStorage, Loader, ProgressCounter},
-    core::timing::Time,
+    core::{timing::Time, transform::Transform, HiddenPropagate},
     ecs::prelude::{Builder, Entity, WorldExt},
     input::{InputHandler, StringBindings},
     prelude::{GameData, SimpleState, StateData},
@@ -59,14 +59,9 @@ impl SimpleState for LoadingState {
 
     fn fixed_update(&mut self, _data: StateData<'_, GameData<'_, '_>>) -> SimpleTrans {
         if self.progress_counter.is_complete() {
-            Trans::Switch(Box::new(PlaybackState {
-                dialogue_handle: self.dialogue_handle.take().unwrap(),
-                glyph_speed: std::env::var("TALKIE_SPEED")
-                    .map(|s| s.parse().expect("invalid speed."))
-                    .ok(),
-                speaker_name_txt: None,
-                dialogue_txt: None,
-            }))
+            Trans::Switch(Box::new(PlaybackState::new(
+                self.dialogue_handle.take().unwrap(),
+            )))
         } else {
             Trans::None
         }
@@ -79,6 +74,19 @@ struct PlaybackState {
     glyph_speed: Option<f32>,
     speaker_name_txt: Option<Entity>,
     dialogue_txt: Option<Entity>,
+}
+
+impl PlaybackState {
+    pub fn new(dialogue_handle: DialogueHandle) -> PlaybackState {
+        PlaybackState {
+            dialogue_handle,
+            glyph_speed: std::env::var("TALKIE_SPEED")
+                .map(|s| s.parse().expect("invalid speed."))
+                .ok(),
+            speaker_name_txt: None,
+            dialogue_txt: None,
+        }
+    }
 }
 
 /// A new glyph is revealed when this amount of time has passed.
@@ -227,26 +235,54 @@ impl SimpleState for SleepState {
     }
 }
 
+// FIXME: add a bool field for "hidden" which will drive the entity modifications over time.
+//  By driving the hide/show with a separate field on the state, we can do things
+//  like blink it or whatever.
 struct PromptState {
+    icon: Option<Entity>,
     tracker: ActionTracker,
 }
 
 impl PromptState {
     pub fn new(action: &str) -> PromptState {
         PromptState {
+            icon: None,
             tracker: ActionTracker::new(action),
         }
     }
 }
 
 impl SimpleState for PromptState {
+    fn on_stop(&mut self, data: StateData<'_, GameData<'_, '_>>) {
+        if let Some(icon) = self.icon {
+            let mut storage = data.world.write_storage::<HiddenPropagate>();
+            let _ = storage.insert(icon, HiddenPropagate::new());
+        }
+    }
+
     fn update(&mut self, data: &mut StateData<'_, GameData<'_, '_>>) -> SimpleTrans {
+        match self.icon {
+            None => return Trans::None,
+            Some(icon) => {
+                let mut storage = data.world.write_storage::<HiddenPropagate>();
+                let _ = storage.remove(icon);
+            }
+        }
+
         let input = data.world.read_resource::<InputHandler<StringBindings>>();
         self.tracker.update(&input);
         if self.tracker.press_begin() {
             Trans::Pop
         } else {
             Trans::None
+        }
+    }
+
+    fn shadow_update(&mut self, data: StateData<'_, GameData<'_, '_>>) {
+        if self.icon.is_none() {
+            data.world.exec(|ui_finder: UiFinder| {
+                self.icon = ui_finder.find("next_page");
+            });
         }
     }
 }
