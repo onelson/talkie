@@ -1,88 +1,72 @@
-use crate::assets::dialogue::{DialogueFormat, DialogueHandle};
 use amethyst::{
-    assets::Loader,
-    ecs::{
-        prelude::{Component, HashMapStorage},
-        World,
-    },
-    prelude::*,
-    renderer::Transparent,
-    ui::UiCreator,
+    ecs::prelude::{Component, HashMapStorage},
+    input::{InputHandler, StringBindings},
 };
+use log::debug;
 
 #[derive(Debug, Clone)]
 pub struct ActionTracker {
-    pub action: &'static str,
+    action: String,
     /// True only when the action is pressed after not being pressed previously.
-    pub press_begin: bool,
+    press_begin: bool,
     /// True from the very first press up until the press ends.
-    pub pressed: bool,
+    pressed: bool,
     /// Marks the point where the action was just released.
-    pub press_end: bool,
+    press_end: bool,
 }
 
 impl ActionTracker {
-    pub fn new(action: &'static str) -> Self {
+    pub fn new<S: Into<String>>(action: S) -> Self {
         Self {
-            action,
+            action: action.into(),
             press_begin: false,
             pressed: false,
             press_end: false,
+        }
+    }
+
+    pub fn press_begin(&self) -> bool {
+        self.press_begin
+    }
+
+    pub fn pressed(&self) -> bool {
+        self.pressed
+    }
+
+    pub fn press_end(&self) -> bool {
+        self.press_end
+    }
+
+    pub fn update(&mut self, input: &InputHandler<StringBindings>) {
+        let is_down = input.action_is_down(&self.action).unwrap_or(false);
+        match (is_down, self.pressed) {
+            (true, false) => {
+                self.press_begin = true;
+                self.pressed = true;
+                self.press_end = false;
+                debug!("{}=down", &self.action);
+            }
+            (true, true) => {
+                self.press_begin = false;
+                self.pressed = true;
+                self.press_end = false;
+                debug!("{}=pressed", &self.action);
+            }
+            (false, true) => {
+                self.press_begin = false;
+                self.pressed = false;
+                self.press_end = true;
+                debug!("{}=up", &self.action);
+            }
+            (false, false) => {
+                self.press_begin = false;
+                self.pressed = false;
+                self.press_end = false;
+            }
         }
     }
 }
 
 impl Component for ActionTracker {
     type Storage = HashMapStorage<Self>;
-}
-
-/// The "billboard" is the lower half of the window where dialogue text will
-/// appear.
-pub struct BillboardData {
-    pub dialogue: DialogueHandle,
-    /// tracks the current length of *displayed text*.
-    pub head: usize,
-    /// tracks which passage group we're iterating through.
-    pub passage_group: usize,
-    /// tracks which passage we're showing.
-    pub passage: usize,
-    pub paused: bool,
-    /// tracks the time since the last glyph was revealed.
-    // XXX: We could default this to 0.0 and not bother with the Option, but
-    //  I thought it might be interesting to be able to know when we're starting
-    //  totally from scratch vs rolling over from a previous iteration.
-    pub secs_since_last_reveal: Option<f32>,
-}
-
-impl Component for BillboardData {
-    type Storage = HashMapStorage<Self>;
-}
-
-pub fn init_billboard(world: &mut World) {
-    let dialogue = world.read_resource::<Loader>().load(
-        "dialogue/mgs3-body-snatchers.dialogue",
-        DialogueFormat,
-        (),
-        &world.read_resource(),
-    );
-
-    world.exec(|mut creator: UiCreator<'_>| {
-        creator.create("billboard.ron", ());
-    });
-
-    let billboard = world
-        .create_entity()
-        .with(Transparent)
-        .with(BillboardData {
-            dialogue,
-            head: 0,
-            passage_group: 0,
-            passage: 0,
-            paused: false,
-            secs_since_last_reveal: None,
-        })
-        .with(ActionTracker::new("confirm"))
-        .build();
-
-    world.insert(billboard);
 }

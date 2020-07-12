@@ -15,15 +15,10 @@ use amethyst::{
 
 mod assets;
 mod components;
+mod states;
 mod systems;
 
-struct MyState;
-
-impl SimpleState for MyState {
-    fn on_start(&mut self, data: StateData<'_, GameData<'_, '_>>) {
-        components::init_billboard(data.world);
-    }
-}
+use states::LoadingState;
 
 fn main() -> amethyst::Result<()> {
     amethyst::start_logger(Default::default());
@@ -53,18 +48,13 @@ fn main() -> amethyst::Result<()> {
             systems::ActionTrackerSystem,
             "action_tracker",
             &["input_system"],
-        )
-        .with(
-            systems::BillboardDisplaySystem {
-                glyph_speed: std::env::var("TALKIE_SPEED")
-                    .map(|s| s.parse().expect("invalid speed."))
-                    .ok(),
-            },
-            "billboard_display",
-            &["dialogue_processor"],
         );
 
-    let mut game = Application::new(assets_dir, MyState, game_data)?;
+    let mut game = Application::new(
+        assets_dir,
+        LoadingState::new("dialogue/mgs3-body-snatchers.dialogue"),
+        game_data,
+    )?;
     game.run();
 
     Ok(())
