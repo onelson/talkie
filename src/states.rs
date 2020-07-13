@@ -272,6 +272,17 @@ impl PromptState {
 }
 
 impl SimpleState for PromptState {
+    fn on_start(&mut self, data: StateData<'_, GameData<'_, '_>>) {
+        let input = data.world.read_resource::<InputHandler<StringBindings>>();
+        // By updating the tracker on start, we maintain continuity with the
+        // input state of the previous state.
+        // This is important because we want to *transition out of this state*
+        // only when the button has been released and re-pressed.
+        // Without this initial update, the player could just hold the button
+        // down to advance through all passages.
+        self.tracker.update(&input);
+    }
+
     fn on_stop(&mut self, data: StateData<'_, GameData<'_, '_>>) {
         if let Some(icon) = self.icon {
             let mut storage = data.world.write_storage::<HiddenPropagate>();
