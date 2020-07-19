@@ -26,7 +26,7 @@ pub struct BillboardData {
     pub passage_group: usize,
     /// tracks which passage we're showing.
     pub passage: usize,
-    /// tracks the time since the last glyph was revealed.
+    /// Tracks the time since the last glyph was revealed.
     // XXX: We could default this to 0.0 and not bother with the Option, but
     //  I thought it might be interesting to be able to know when we're starting
     //  totally from scratch vs rolling over from a previous iteration.
@@ -90,7 +90,8 @@ impl SimpleState for LoadingState {
 /// Render the dialogue text over time.
 struct PlaybackState {
     dialogue_handle: DialogueHandle,
-    glyph_speed: Option<f32>,
+    /// The number of glyphs that should be revealed per second.
+    glyphs_per_sec: f32,
     speaker_name_txt: Option<Entity>,
     dialogue_txt: Option<Entity>,
 }
@@ -99,17 +100,64 @@ impl PlaybackState {
     pub fn new(dialogue_handle: DialogueHandle) -> PlaybackState {
         PlaybackState {
             dialogue_handle,
-            glyph_speed: std::env::var("TALKIE_SPEED")
+            glyphs_per_sec: std::env::var("TALKIE_SPEED")
                 .map(|s| s.parse().expect("invalid speed."))
-                .ok(),
+                .unwrap_or(DEFAULT_GLYPHS_PER_SEC),
             speaker_name_txt: None,
             dialogue_txt: None,
         }
     }
 }
 
-/// A new glyph is revealed when this amount of time has passed.
-const GLYPH_PERIOD_SECS: f32 = 0.2;
+/// The default number of glyphs to reveal per second.
+///
+/// This value is used as a fallback for when the `TALKIE_SPEED` env var is
+/// unset while constructing a new `PlaybackState`.
+const DEFAULT_GLYPHS_PER_SEC: f32 = 15.0;
+
+/// Given some amount of time, use the rate to determine how much of the time
+/// went unused and how many glyphs should now be revealed.
+fn calc_glyphs_to_reveal(delta_secs: f32, glyphs_per_sec: f32) -> (usize, f32) {
+    let reveal_how_many = (delta_secs * glyphs_per_sec).trunc();
+    let remainder = delta_secs - (reveal_how_many / glyphs_per_sec);
+    (reveal_how_many as usize, remainder)
+}
+
+#[cfg(test)]
+mod glyph_reveal_tests {
+    use super::calc_glyphs_to_reveal;
+    use assert_approx_eq::assert_approx_eq;
+
+    /// If the delta is not big enough to reveal at least one glyph, then the
+    /// remainder should be the entire delta.
+    #[test]
+    fn test_delta_carries_over() {
+        let (count, remainder) = calc_glyphs_to_reveal(1.0, 0.5);
+        assert_eq!(0, count);
+        assert_approx_eq!(1.0, remainder);
+    }
+
+    #[test]
+    fn test_delta_zero_when_glyph_revealed() {
+        let (count, remainder) = calc_glyphs_to_reveal(2.0, 0.5);
+        assert_eq!(1, count);
+        assert_approx_eq!(0.0, remainder);
+    }
+
+    #[test]
+    fn test_delta_remainder_when_glyph_revealed() {
+        let (count, remainder) = calc_glyphs_to_reveal(2.2, 0.5);
+        assert_eq!(1, count);
+        assert_approx_eq!(0.2, remainder);
+    }
+
+    #[test]
+    fn test_multi_glyph_remainder() {
+        let (count, remainder) = calc_glyphs_to_reveal(5.2, 2.0);
+        assert_eq!(10, count);
+        assert_approx_eq!(0.2, remainder);
+    }
+}
 
 impl SimpleState for PlaybackState {
     fn on_start(&mut self, data: StateData<'_, GameData<'_, '_>>) {
@@ -164,9 +212,8 @@ impl SimpleState for PlaybackState {
                 let mut since = billboard.secs_since_last_reveal.unwrap_or_default();
                 since += time.delta_seconds();
 
-                let glyph_speed = self.glyph_speed.unwrap_or(GLYPH_PERIOD_SECS);
-                let reveal_how_many = (since / glyph_speed).trunc() as usize;
-                let remainder = since % glyph_speed;
+                let (reveal_how_many, remainder) =
+                    calc_glyphs_to_reveal(since, self.glyphs_per_sec);
 
                 billboard.secs_since_last_reveal = Some(remainder);
 
