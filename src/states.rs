@@ -89,6 +89,7 @@ impl SimpleState for LoadingState {
 
 /// Render the dialogue text over time.
 struct PlaybackState {
+    tracker: ActionTracker,
     dialogue_handle: DialogueHandle,
     /// The number of glyphs that should be revealed per second.
     glyphs_per_sec: f32,
@@ -105,6 +106,7 @@ impl PlaybackState {
                 .unwrap_or(DEFAULT_GLYPHS_PER_SEC),
             speaker_name_txt: None,
             dialogue_txt: None,
+            tracker: ActionTracker::new("confirm"),
         }
     }
 }
@@ -172,15 +174,17 @@ impl SimpleState for PlaybackState {
         world.exec(|mut creator: UiCreator<'_>| {
             creator.create("billboard.ron", ());
         });
-        let billboard = world
-            .create_entity()
-            .with(Transparent)
-            .with(ActionTracker::new("confirm"))
-            .build();
+        let billboard = world.create_entity().with(Transparent).build();
         world.insert(billboard);
+
+        let input = world.read_resource::<InputHandler<StringBindings>>();
+        self.tracker.update(&input);
     }
 
     fn fixed_update(&mut self, data: StateData<'_, GameData<'_, '_>>) -> SimpleTrans {
+        let input = data.world.read_resource::<InputHandler<StringBindings>>();
+        self.tracker.update(&input);
+
         if self.speaker_name_txt.or(self.dialogue_txt).is_none() {
             // bail early if we haven't loaded the ui yet.
             return Trans::None;
@@ -212,8 +216,10 @@ impl SimpleState for PlaybackState {
                 let mut since = billboard.secs_since_last_reveal.unwrap_or_default();
                 since += time.delta_seconds();
 
-                let (reveal_how_many, remainder) =
-                    calc_glyphs_to_reveal(since, self.glyphs_per_sec);
+                let (reveal_how_many, remainder) = calc_glyphs_to_reveal(
+                    since,
+                    self.glyphs_per_sec * if self.tracker.pressed() { 8.0 } else { 1.0 },
+                );
 
                 billboard.secs_since_last_reveal = Some(remainder);
 
