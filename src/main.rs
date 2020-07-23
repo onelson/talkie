@@ -50,11 +50,15 @@ fn main() -> amethyst::Result<()> {
             &["input_system"],
         );
 
-    let mut game = Application::new(
-        assets_dir,
-        LoadingState::new("dialogue/mgs3-body-snatchers.dialogue"),
-        game_data,
-    )?;
+    let dialogue_path = std::env::args()
+        .nth(1)
+        .unwrap_or_else(|| String::from("assets/dialogue/lipsum.dialogue"))
+        .rsplit("assets/")
+        .next()
+        .unwrap()
+        .to_string();
+
+    let mut game = Application::new(assets_dir, LoadingState::new(&dialogue_path), game_data)?;
     game.run();
 
     Ok(())

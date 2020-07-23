@@ -95,6 +95,10 @@ struct PlaybackState {
     glyphs_per_sec: f32,
     speaker_name_txt: Option<Entity>,
     dialogue_txt: Option<Entity>,
+    /// Tracks if the confirm action was ever "not pressed."
+    /// This is useful for preventing the text from speeding up immediately
+    /// after popping the `PromptState`.
+    depressed: bool,
 }
 
 impl PlaybackState {
@@ -107,6 +111,7 @@ impl PlaybackState {
             speaker_name_txt: None,
             dialogue_txt: None,
             tracker: ActionTracker::new("confirm"),
+            depressed: false,
         }
     }
 }
@@ -115,7 +120,8 @@ impl PlaybackState {
 ///
 /// This value is used as a fallback for when the `TALKIE_SPEED` env var is
 /// unset while constructing a new `PlaybackState`.
-const DEFAULT_GLYPHS_PER_SEC: f32 = 15.0;
+const DEFAULT_GLYPHS_PER_SEC: f32 = 18.0;
+const TALKIE_SPEED_FACTOR: f32 = 30.0;
 
 /// Given some amount of time, use the rate to determine how much of the time
 /// went unused and how many glyphs should now be revealed.
@@ -176,14 +182,20 @@ impl SimpleState for PlaybackState {
         });
         let billboard = world.create_entity().with(Transparent).build();
         world.insert(billboard);
+    }
 
-        let input = world.read_resource::<InputHandler<StringBindings>>();
-        self.tracker.update(&input);
+    fn on_resume(&mut self, _data: StateData<'_, GameData<'_, '_>>) {
+        // Reset the depressed status when this state is revisited.
+        self.depressed = false;
     }
 
     fn fixed_update(&mut self, data: StateData<'_, GameData<'_, '_>>) -> SimpleTrans {
         let input = data.world.read_resource::<InputHandler<StringBindings>>();
         self.tracker.update(&input);
+
+        if !self.depressed && !self.tracker.pressed() {
+            self.depressed = true;
+        }
 
         if self.speaker_name_txt.or(self.dialogue_txt).is_none() {
             // bail early if we haven't loaded the ui yet.
@@ -216,9 +228,19 @@ impl SimpleState for PlaybackState {
                 let mut since = billboard.secs_since_last_reveal.unwrap_or_default();
                 since += time.delta_seconds();
 
+                // We expect the action to be released and re-pressed before it
+                // speeds up the text. This guards against the `PromptState`
+                // confirm from fast-forwarding the text that immediately starts
+                // showing after the pop.
+                let should_speed_up = self.depressed && self.tracker.pressed();
                 let (reveal_how_many, remainder) = calc_glyphs_to_reveal(
                     since,
-                    self.glyphs_per_sec * if self.tracker.pressed() { 8.0 } else { 1.0 },
+                    self.glyphs_per_sec
+                        * if should_speed_up {
+                            TALKIE_SPEED_FACTOR
+                        } else {
+                            1.0
+                        },
                 );
 
                 billboard.secs_since_last_reveal = Some(remainder);
@@ -313,6 +335,8 @@ impl SimpleState for SleepState {
 struct PromptState {
     icon: Option<Entity>,
     tracker: ActionTracker,
+    depressed: bool,
+    pressed: bool,
 }
 
 impl PromptState {
@@ -320,6 +344,8 @@ impl PromptState {
         PromptState {
             icon: None,
             tracker: ActionTracker::new(action),
+            depressed: false,
+            pressed: false,
         }
     }
 }
@@ -353,8 +379,17 @@ impl SimpleState for PromptState {
         }
 
         let input = data.world.read_resource::<InputHandler<StringBindings>>();
+
         self.tracker.update(&input);
-        if self.tracker.press_begin() {
+        if !self.depressed && !self.tracker.pressed() {
+            self.depressed = true;
+        }
+
+        if self.depressed && !self.pressed && self.tracker.pressed() {
+            self.pressed = true;
+        }
+
+        if self.depressed && self.pressed {
             Trans::Pop
         } else {
             Trans::None
