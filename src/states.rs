@@ -300,35 +300,6 @@ impl SimpleState for PlaybackState {
     }
 }
 
-#[derive(Default)]
-struct SleepState {
-    /// How many seconds to wait before "popping" to return to the previous state.
-    sleep_duration: f32,
-    /// How long this state has slept for.
-    acc: f32,
-}
-
-impl SleepState {
-    pub fn new(sleep_duration: f32) -> SleepState {
-        SleepState {
-            sleep_duration,
-            ..Default::default()
-        }
-    }
-}
-
-impl SimpleState for SleepState {
-    fn update(&mut self, data: &mut StateData<'_, GameData<'_, '_>>) -> SimpleTrans {
-        if self.acc < self.sleep_duration {
-            let time = data.world.read_resource::<Time>();
-            self.acc += time.delta_seconds();
-            Trans::None
-        } else {
-            Trans::Pop
-        }
-    }
-}
-
 // FIXME: add a bool field for "hidden" which will drive the entity modifications over time.
 //  By driving the hide/show with a separate field on the state, we can do things
 //  like blink it or whatever.
