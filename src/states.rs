@@ -37,7 +37,8 @@ pub struct BillboardData {
 pub struct LoadingState {
     path: String,
     dialogue_handle: Option<DialogueHandle>,
-    progress_counter: ProgressCounter,
+    dialogue_progress: ProgressCounter,
+    ui_progress: ProgressCounter,
 }
 
 impl LoadingState {
@@ -45,7 +46,8 @@ impl LoadingState {
         LoadingState {
             path: dialogue_path.into(),
             dialogue_handle: None,
-            progress_counter: ProgressCounter::new(),
+            dialogue_progress: ProgressCounter::new(),
+            ui_progress: ProgressCounter::new(),
         }
     }
 }
@@ -56,7 +58,7 @@ impl SimpleState for LoadingState {
         self.dialogue_handle = Some(world.read_resource::<Loader>().load(
             &self.path,
             DialogueFormat,
-            &mut self.progress_counter,
+            &mut self.dialogue_progress,
             &world.read_resource(),
         ));
 
@@ -74,12 +76,26 @@ impl SimpleState for LoadingState {
         camera.set_projection(Projection::orthographic(0., width, 0., height, 0.0, 20.0));
 
         let _camera = world.create_entity().with(transform).with(camera).build();
+
+        world.exec(move |mut creator: UiCreator<'_>| {
+            creator.create("billboard.ron", &mut self.ui_progress);
+        });
     }
 
-    fn fixed_update(&mut self, _data: StateData<'_, GameData<'_, '_>>) -> SimpleTrans {
-        if self.progress_counter.is_complete() {
+    fn fixed_update(&mut self, data: StateData<'_, GameData<'_, '_>>) -> SimpleTrans {
+        if self.dialogue_progress.is_complete() && self.ui_progress.is_complete() {
+            let mut speaker_name_txt = None;
+            let mut dialogue_txt = None;
+
+            data.world.exec(|ui_finder: UiFinder| {
+                speaker_name_txt = ui_finder.find("speaker_name");
+                dialogue_txt = ui_finder.find("dialogue_text");
+            });
+
             Trans::Switch(Box::new(PlaybackState::new(
                 self.dialogue_handle.take().unwrap(),
+                speaker_name_txt.unwrap(),
+                dialogue_txt.unwrap(),
             )))
         } else {
             Trans::None
@@ -93,8 +109,8 @@ struct PlaybackState {
     dialogue_handle: DialogueHandle,
     /// The number of glyphs that should be revealed per second.
     glyphs_per_sec: f32,
-    speaker_name_txt: Option<Entity>,
-    dialogue_txt: Option<Entity>,
+    speaker_name_txt: Entity,
+    dialogue_txt: Entity,
     /// Tracks if the confirm action was ever "not pressed."
     /// This is useful for preventing the text from speeding up immediately
     /// after popping the `PromptState`.
@@ -102,14 +118,18 @@ struct PlaybackState {
 }
 
 impl PlaybackState {
-    pub fn new(dialogue_handle: DialogueHandle) -> PlaybackState {
+    pub fn new(
+        dialogue_handle: DialogueHandle,
+        speaker_name_txt: Entity,
+        dialogue_txt: Entity,
+    ) -> PlaybackState {
         PlaybackState {
             dialogue_handle,
             glyphs_per_sec: std::env::var("TALKIE_SPEED")
                 .map(|s| s.parse().expect("invalid speed."))
                 .unwrap_or(DEFAULT_GLYPHS_PER_SEC),
-            speaker_name_txt: None,
-            dialogue_txt: None,
+            speaker_name_txt,
+            dialogue_txt,
             tracker: ActionTracker::new("confirm"),
             depressed: false,
         }
@@ -177,9 +197,7 @@ impl SimpleState for PlaybackState {
             passage: 0,
             secs_since_last_reveal: None,
         });
-        world.exec(|mut creator: UiCreator<'_>| {
-            creator.create("billboard.ron", ());
-        });
+
         let billboard = world.create_entity().with(Transparent).build();
         world.insert(billboard);
     }
@@ -195,11 +213,6 @@ impl SimpleState for PlaybackState {
 
         if !self.depressed && !self.tracker.pressed() {
             self.depressed = true;
-        }
-
-        if self.speaker_name_txt.or(self.dialogue_txt).is_none() {
-            // bail early if we haven't loaded the ui yet.
-            return Trans::None;
         }
 
         let billboard = &mut data.world.write_resource::<BillboardData>();
@@ -219,9 +232,8 @@ impl SimpleState for PlaybackState {
 
             let group = &dialogue.passage_groups[billboard.passage_group];
 
-            if self
-                .speaker_name_txt
-                .and_then(|e| ui_text.get_mut(e))
+            if ui_text
+                .get_mut(self.speaker_name_txt)
                 .map(|t| t.text = format!("// {}", &group.speaker))
                 .is_some()
             {
@@ -249,11 +261,9 @@ impl SimpleState for PlaybackState {
                 // there be a problem with the parser.
                 let entire_text = &group.passages[billboard.passage];
 
-                if let Some(entity) = self.dialogue_txt {
-                    if let Some(t) = ui_text.get_mut(entity) {
-                        billboard.head += reveal_how_many; // Only advance if we can update the display
-                        t.text = entire_text.chars().take(billboard.head).collect();
-                    }
+                if let Some(t) = ui_text.get_mut(self.dialogue_txt) {
+                    billboard.head += reveal_how_many; // Only advance if we can update the display
+                    t.text = entire_text.chars().take(billboard.head).collect();
                 }
             }
             Trans::None
@@ -284,18 +294,6 @@ impl SimpleState for PlaybackState {
             }
 
             Trans::Push(Box::new(PromptState::new("confirm")))
-        }
-    }
-
-    fn shadow_update(&mut self, data: StateData<'_, GameData<'_, '_>>) {
-        // FIXME: think about moving this into the loading state
-        //  Will need to figure out how to hide the UI elements until "on_start" fires in playback
-        //  to do this.
-        if self.speaker_name_txt.or(self.dialogue_txt).is_none() {
-            data.world.exec(|ui_finder: UiFinder| {
-                self.speaker_name_txt = ui_finder.find("speaker_name");
-                self.dialogue_txt = ui_finder.find("dialogue_text");
-            });
         }
     }
 }
