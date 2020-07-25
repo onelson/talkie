@@ -17,6 +17,7 @@ mod assets;
 mod components;
 mod states;
 mod systems;
+mod utils;
 
 use states::LoadingState;
 
