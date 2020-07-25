@@ -111,10 +111,8 @@ struct PlaybackState {
     glyphs_per_sec: f32,
     speaker_name_txt: Entity,
     dialogue_txt: Entity,
-    /// Tracks if the confirm action was ever "not pressed."
-    /// This is useful for preventing the text from speeding up immediately
-    /// after popping the `PromptState`.
-    depressed: bool,
+    /// When true, the text reveal speed is scaled up.
+    fastforward: bool,
 }
 
 impl PlaybackState {
@@ -131,7 +129,7 @@ impl PlaybackState {
             speaker_name_txt,
             dialogue_txt,
             tracker: ActionTracker::new("confirm"),
-            depressed: false,
+            fastforward: false,
         }
     }
 }
@@ -204,15 +202,18 @@ impl SimpleState for PlaybackState {
 
     fn on_resume(&mut self, _data: StateData<'_, GameData<'_, '_>>) {
         // Reset the depressed status when this state is revisited.
-        self.depressed = false;
+        self.fastforward = false;
     }
 
     fn fixed_update(&mut self, data: StateData<'_, GameData<'_, '_>>) -> SimpleTrans {
         let input = data.world.read_resource::<InputHandler<StringBindings>>();
         self.tracker.update(&input);
 
-        if !self.depressed && !self.tracker.pressed() {
-            self.depressed = true;
+        if self.tracker.press_begin() {
+            self.fastforward = true;
+        }
+        if self.tracker.press_end() {
+            self.fastforward = false;
         }
 
         let billboard = &mut data.world.write_resource::<BillboardData>();
@@ -240,15 +241,10 @@ impl SimpleState for PlaybackState {
                 let mut since = billboard.secs_since_last_reveal.unwrap_or_default();
                 since += time.delta_seconds();
 
-                // We expect the action to be released and re-pressed before it
-                // speeds up the text. This guards against the `PromptState`
-                // confirm from fast-forwarding the text that immediately starts
-                // showing after the pop.
-                let should_speed_up = self.depressed && self.tracker.pressed();
                 let (reveal_how_many, remainder) = calc_glyphs_to_reveal(
                     since,
                     self.glyphs_per_sec
-                        * if should_speed_up {
+                        * if self.fastforward {
                             TALKIE_SPEED_FACTOR
                         } else {
                             1.0
@@ -304,8 +300,6 @@ impl SimpleState for PlaybackState {
 struct PromptState {
     icon: Option<Entity>,
     tracker: ActionTracker,
-    depressed: bool,
-    pressed: bool,
 }
 
 impl PromptState {
@@ -313,15 +307,21 @@ impl PromptState {
         PromptState {
             icon: None,
             tracker: ActionTracker::new(action),
-            depressed: false,
-            pressed: false,
         }
     }
 }
 
 impl SimpleState for PromptState {
     fn on_start(&mut self, data: StateData<'_, GameData<'_, '_>>) {
-        let input = data.world.read_resource::<InputHandler<StringBindings>>();
+        let world = data.world;
+
+        if self.icon.is_none() {
+            world.exec(|ui_finder: UiFinder| {
+                self.icon = ui_finder.find("next_page");
+            });
+        }
+
+        let input = world.read_resource::<InputHandler<StringBindings>>();
         // By updating the tracker on start, we maintain continuity with the
         // input state of the previous state.
         // This is important because we want to *transition out of this state*
@@ -350,26 +350,11 @@ impl SimpleState for PromptState {
         let input = data.world.read_resource::<InputHandler<StringBindings>>();
 
         self.tracker.update(&input);
-        if !self.depressed && !self.tracker.pressed() {
-            self.depressed = true;
-        }
 
-        if self.depressed && !self.pressed && self.tracker.pressed() {
-            self.pressed = true;
-        }
-
-        if self.depressed && self.pressed {
+        if self.tracker.press_begin() {
             Trans::Pop
         } else {
             Trans::None
-        }
-    }
-
-    fn shadow_update(&mut self, data: StateData<'_, GameData<'_, '_>>) {
-        if self.icon.is_none() {
-            data.world.exec(|ui_finder: UiFinder| {
-                self.icon = ui_finder.find("next_page");
-            });
         }
     }
 }
