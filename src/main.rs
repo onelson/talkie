@@ -53,7 +53,7 @@ fn main() -> amethyst::Result<()> {
 
     let dialogue_path = std::env::args()
         .nth(1)
-        .unwrap_or_else(|| String::from("assets/dialogue/lipsum.dialogue"))
+        .unwrap_or_else(|| String::from("assets/dialogue/lipsum.toml"))
         .rsplit("assets/")
         .next()
         .unwrap()

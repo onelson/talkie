@@ -1,0 +1,145 @@
+[[section]]
+speaker = "Para-Medic"
+passages = [ "Do you want to SAVE?" ]
+choices = [
+    { label = "YES" },
+    { label = "NO" }
+]
+
+
+[[section]]
+speaker = "Para-Medic"
+passages = [
+"""
+Snake, have you ever seen "Invasion of the Body Snatchers"?
+"""
+]
+
+
+[[section]]
+speaker = "Snake"
+passages = [ "Y...no, I haven't." ]
+
+
+[[section]]
+speaker = "Para-Medic"
+passages = [
+"""
+It's about this town where, one by one, the people disappear and are replaced by
+someone else.
+""",
+"""
+It keeps getting worse and worse, until finally the main character's friends and
+family start getting replaced.
+""",
+"""
+It turns out it was a giant plant thing producing human clones.
+
+
+Creepy, huh?
+"""
+]
+
+
+[[section]]
+speaker = "Snake"
+passages = [ "Clones?" ]
+
+
+[[section]]
+speaker = "Para-Medic"
+passages = [
+"""
+A clone is a body or cell that's genetically identical to another one.
+
+
+They didn't use that term in the movie, though.
+"""
+]
+
+
+[[section]]
+speaker = "Snake"
+passages = [ "(Heh) You mean a copy of a human being?" ]
+
+
+[[section]]
+speaker = "Para-Medic"
+passages = [
+"""
+It's technologically feasible.
+
+We know it's possible to do it in theory, and they've already started the
+research.
+""",
+"""
+One day - maybe towards the beginning of the next century - the genes of super
+soldiers like you are going to be a hot commodity.
+"""
+]
+
+
+[[section]]
+speaker = "Snake"
+passages = [ "Just to make copies of me?" ]
+
+
+[[section]]
+speaker = "Para-Medic"
+passages = [ "Precisely." ]
+
+
+[[section]]
+speaker = "Snake"
+passages = [ "Like a thoroughbred horse?" ]
+
+
+[[section]]
+speaker = "Para-Medic"
+passages = [ "Right." ]
+
+
+[[section]]
+speaker = "Snake"
+passages = [ "Huh..." ]
+
+
+[[section]]
+speaker = "Para-Medic"
+passages = [ "Hmm..." ]
+
+
+[[section]]
+speaker = "Snake"
+passages = [ "You know they'd never allow it." ]
+
+
+[[section]]
+speaker = "Para-Medic"
+passages = [
+"""
+Maybe... But technology changes people. We can't predict how people will think
+50 years from now.
+"""
+]
+
+
+[[section]]
+speaker = "Snake"
+passages = [ "Some things shouldn't be changed." ]
+
+
+[[section]]
+speaker = "Para-Medic"
+passages = [
+"""
+We're not the ones who decide that.
+""",
+"""
+I think maybe the only thing we can do is to try and pass on our beliefs to our
+children.
+""",
+"""
+So that they won't head in the wrong direction.
+"""
+]
