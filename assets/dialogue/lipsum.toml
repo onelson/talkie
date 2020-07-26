@@ -1,5 +1,9 @@
-::[Richard McClintock]
+[[section]]
 
+speaker = "Richard McClintock"
+
+passages = [
+"""
 Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc varius at nisi sit
 amet cursus. Aliquam tempor elementum sapien, eu tincidunt ante rutrum eget.
 Nullam efficitur rhoncus molestie. Interdum et malesuada fames ac ante ipsum
@@ -7,17 +11,19 @@ primis in faucibus. Donec a blandit urna, ut convallis nulla. Aenean quis
 lobortis leo. Pellentesque eget lacus gravida, mattis tortor a, tincidunt nibh.
 Quisque ante justo, eleifend nec tortor sit amet, accumsan scelerisque elit.
 Suspendisse tempor nibh eget congue viverra.
-
-
+""",
+"""
 Proin laoreet eget nunc consequat pretium. Nam nec purus porttitor, porttitor
 lorem sed, egestas leo. Ut malesuada vehicula eros id elementum. Vestibulum
 laoreet, nulla nec congue convallis, augue felis varius ex, in suscipit neque
 arcu quis massa. Fusce et tristique felis. Donec sed enim faucibus, tincidunt
 sem vitae, volutpat enim. Morbi mattis erat vel lacus rhoncus, vitae auctor nibh
-aliquam. Nam vel gravida eros. Aenean in metus sed nibh malesuada commodo. Cras
+aliquam. Nam vel gravida eros.
+
+Aenean in metus sed nibh malesuada commodo. Cras
 pulvinar elementum nulla ut aliquam.
-
-
+""",
+"""
 Aenean bibendum, leo eu faucibus elementum, libero orci tempor turpis, non semper
 erat augue a metus. Donec tempor, turpis in auctor facilisis, quam turpis viverra
 tellus, sed pulvinar sapien felis vel tortor. Vestibulum imperdiet fringilla ipsum
@@ -25,3 +31,5 @@ sit amet bibendum. Nullam imperdiet in tellus eu accumsan. Duis ut tempus enim.
 Vivamus sed accumsan erat, et facilisis purus. Vivamus fringilla at risus in
 lobortis. Duis vel magna tortor. Duis sapien libero, sagittis nec turpis vel,
 faucibus volutpat massa.
+""",
+]
