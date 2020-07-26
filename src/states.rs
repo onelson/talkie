@@ -1,4 +1,4 @@
-use crate::assets::dialogue::{Dialogue, DialogueFormat, DialogueHandle};
+use crate::assets::dialogue::{Choice, Dialogue, DialogueFormat, DialogueHandle};
 use crate::components::ActionTracker;
 use crate::utils::calc_glyphs_to_reveal;
 use amethyst::{
@@ -246,8 +246,42 @@ impl SimpleState for PlaybackState {
                 }
             }
 
+            let has_choices = group
+                .choices
+                .as_ref()
+                .map(|v| !v.is_empty())
+                .unwrap_or(false);
+            if last_passage && has_choices {
+                return Trans::Push(Box::new(ChoiceState::new(group.choices.clone().unwrap())));
+            }
+
             Trans::Push(Box::new(PromptState::new("confirm")))
         }
+    }
+}
+
+struct ChoiceState {
+    choices: Vec<Choice>,
+}
+
+impl ChoiceState {
+    pub fn new(choices: Vec<Choice>) -> ChoiceState {
+        ChoiceState { choices }
+    }
+}
+
+impl SimpleState for ChoiceState {
+    fn on_start(&mut self, _data: StateData<'_, GameData<'_, '_>>) {
+        // TODO: build a series of buttons based on `self.choices`
+    }
+
+    fn on_stop(&mut self, _data: StateData<'_, GameData<'_, '_>>) {
+        // TODO: remove the buttons
+    }
+
+    fn fixed_update(&mut self, _data: StateData<'_, GameData<'_, '_>>) -> SimpleTrans {
+        println!("{:?}", self.choices);
+        Trans::Pop
     }
 }
 
