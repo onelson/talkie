@@ -11,7 +11,7 @@ use amethyst::{
         camera::{Camera, Projection},
         Transparent,
     },
-    ui::{UiCreator, UiFinder, UiText},
+    ui::{Anchor, FontHandle, Interactable, TtfFormat, UiCreator, UiFinder, UiText, UiTransform},
     window::ScreenDimensions,
     SimpleTrans, Trans,
 };
@@ -192,7 +192,14 @@ impl SimpleState for PlaybackState {
 
             if ui_text
                 .get_mut(self.speaker_name_txt)
-                .map(|t| t.text = format!("// {}", &group.speaker))
+                .map(|t| {
+                    t.text = group
+                        .speaker
+                        .as_ref()
+                        .map(|s| s.as_str())
+                        .unwrap_or("")
+                        .to_string()
+                })
                 .is_some()
             {
                 let mut since = billboard.secs_since_last_reveal.unwrap_or_default();
@@ -262,26 +269,76 @@ impl SimpleState for PlaybackState {
 
 struct ChoiceState {
     choices: Vec<Choice>,
+    buttons: Vec<Entity>,
+    font: Option<FontHandle>,
 }
 
 impl ChoiceState {
     pub fn new(choices: Vec<Choice>) -> ChoiceState {
-        ChoiceState { choices }
+        let buttons = Vec::with_capacity(choices.len());
+        ChoiceState {
+            choices,
+            buttons,
+            font: None,
+        }
     }
 }
 
 impl SimpleState for ChoiceState {
-    fn on_start(&mut self, _data: StateData<'_, GameData<'_, '_>>) {
-        // TODO: build a series of buttons based on `self.choices`
+    fn on_start(&mut self, data: StateData<'_, GameData<'_, '_>>) {
+        let world = data.world;
+        self.font = Some(world.read_resource::<Loader>().load(
+            "font/CC Accidenz Commons-medium.ttf",
+            TtfFormat,
+            (),
+            &world.read_resource(),
+        ));
+
+        // we don't want to capture `self` in the closure below.
+        let font = self.font.clone().unwrap();
+
+        self.buttons = self
+            .choices
+            .iter()
+            .rev()
+            .enumerate()
+            .map(move |(idx, choice)| {
+                let mut ui_text =
+                    UiText::new(font.clone(), choice.label.clone(), [0., 0., 0., 1.], 20.0);
+                ui_text.align = Anchor::MiddleLeft;
+
+                const GUTTER_V: f32 = 4.;
+                const BTN_HEIGHT: f32 = 30.;
+                const BTN_WIDTH: f32 = 100.;
+                // Mainly used to make room for the billboard bezel.
+                const PADDING: f32 = 30.;
+
+                world
+                    .create_entity()
+                    .with(UiTransform::new(
+                        choice.label.clone(),
+                        Anchor::BottomLeft,
+                        Anchor::BottomLeft,
+                        PADDING,
+                        (idx as f32 * (BTN_HEIGHT + GUTTER_V)) + PADDING,
+                        3., // z index
+                        BTN_WIDTH,
+                        BTN_HEIGHT,
+                    ))
+                    .with(ui_text)
+                    .with(Interactable)
+                    .build()
+            })
+            .collect();
     }
 
-    fn on_stop(&mut self, _data: StateData<'_, GameData<'_, '_>>) {
-        // TODO: remove the buttons
+    fn on_stop(&mut self, data: StateData<'_, GameData<'_, '_>>) {
+        data.world.delete_entities(&self.buttons).unwrap();
+        self.buttons.clear();
     }
 
     fn fixed_update(&mut self, _data: StateData<'_, GameData<'_, '_>>) -> SimpleTrans {
-        println!("{:?}", self.choices);
-        Trans::Pop
+        Trans::None
     }
 }
 

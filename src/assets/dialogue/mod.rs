@@ -12,10 +12,10 @@ use serde::Deserialize;
 #[derive(Debug, Deserialize, PartialEq, Eq, Clone)]
 pub struct Choice {
     /// The text to display in the menu.
-    label: String,
+    pub label: String,
     /// When  specified, this is used as a section (matched by id) to jump to.
     /// If no goto is listed, the choice simply advances to the next section.
-    goto: Option<String>,
+    pub goto: Option<String>,
 }
 
 /// A sequence of passages, associated with a speaker.
@@ -24,7 +24,7 @@ pub struct PassageGroup {
     /// This optional id is how `Choice`s find the passage group to jump to when
     /// a value for `goto` is set.
     pub id: Option<String>,
-    pub speaker: String,
+    pub speaker: Option<String>,
     /// Blocks of text to show, one by one.
     pub passages: Vec<String>,
     pub choices: Option<Vec<Choice>>,
