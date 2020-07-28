@@ -1,0 +1,62 @@
+[[section]]
+passages = ["Where you wanna go??"]
+choices = [
+    { label = "As", goto="a" },
+    { label = "Bs", goto="b" },
+    { label = "Cs", goto="c" },
+    { label = "Next" }
+]
+
+[[section]]
+id = "a"
+passages = [
+"AAAAAAAAAAAAAA",
+"aaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+"""
+AAAaaaaAAAAAaaaaaaaaAAAAAAAAAAAA AAAAAAAAAAAAAAAAAAaaaaaa
+
+aaaaaaaaaaaaAAAAAAAAAAAAAAAAAAA AAAAAAAAAAAAAAaaaaaaaaaaa
+aaaaaaaaAAAAAAAaaaAAAAA AAAAAAAAAAA
+"""
+]
+choices = [
+    { label = "Bs", goto="b" },
+    { label = "Cs", goto="c" },
+    { label = "Next" }
+]
+
+[[section]]
+id = "b"
+passages = [
+"BBBBBBBBBBBBBB",
+"bbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+"""
+BBBbbbbBBBBBbbbbbbbbBBBBBBBBBBBB BBBBBBBBBBBBBBBBBBbbbbbb
+
+bbbbbbbbbbbbBBBBBBBBBBBBBBBBBBB BBBBBBBBBBBBBBbbbbbbbbbbb
+bbbbbbbbBBBBBBBbbbBBBBB BBBBBBBBBBB
+"""
+]
+choices = [
+    { label = "As", goto="a" },
+    { label = "Cs", goto="c" },
+    { label = "Next" }
+]
+
+[[section]]
+id = "c"
+passages = [
+"CCCCCCCCCCCCCC",
+"ccccccccccccccccccccccccccccc",
+"""
+CCCccccCCCCCccccccccCCCCCCCCCCCC CCCCCCCCCCCCCCCCCCcccccc
+
+ccccccccccccCCCCCCCCCCCCCCCCCCC CCCCCCCCCCCCCCccccccccccc
+ccccccccCCCCCCCcccCCCCC CCCCCCCCCCC
+"""
+]
+choices = [
+    { label = "As", goto="a" },
+    { label = "Bs", goto="b" },
+    { label = "Next" }
+]

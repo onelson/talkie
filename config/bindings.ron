@@ -1,6 +1,6 @@
 (
   axes: {},
   actions: {
-    "confirm": [[Key(Space)], [Key(Return)]],
+    "confirm": [[Key(Space)], [Key(Return)], [Mouse(Left)]],
   },
 )

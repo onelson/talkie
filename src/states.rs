@@ -1,6 +1,7 @@
-use crate::assets::dialogue::{Dialogue, DialogueFormat, DialogueHandle};
+use crate::assets::dialogue::{Choice, Dialogue, DialogueFormat, DialogueHandle};
 use crate::components::ActionTracker;
 use crate::utils::calc_glyphs_to_reveal;
+use amethyst::ui::UiEventType;
 use amethyst::{
     assets::{AssetStorage, Loader, ProgressCounter},
     core::{timing::Time, transform::Transform, HiddenPropagate},
@@ -11,9 +12,9 @@ use amethyst::{
         camera::{Camera, Projection},
         Transparent,
     },
-    ui::{UiCreator, UiFinder, UiText},
+    ui::{Anchor, FontHandle, Interactable, TtfFormat, UiCreator, UiFinder, UiText, UiTransform},
     window::ScreenDimensions,
-    SimpleTrans, Trans,
+    SimpleTrans, StateEvent, Trans,
 };
 
 /// The "billboard" is the lower half of the window where dialogue text will
@@ -145,6 +146,7 @@ const TALKIE_SPEED_FACTOR: f32 = 30.0;
 impl SimpleState for PlaybackState {
     fn on_start(&mut self, data: StateData<'_, GameData<'_, '_>>) {
         let world = data.world;
+        world.insert(Goto::default());
         world.insert(BillboardData {
             dialogue_id: self.dialogue_handle.id(),
             head: 0,
@@ -157,9 +159,23 @@ impl SimpleState for PlaybackState {
         world.insert(billboard);
     }
 
-    fn on_resume(&mut self, _data: StateData<'_, GameData<'_, '_>>) {
-        // Reset the depressed status when this state is revisited.
-        self.fastforward = false;
+    fn on_resume(&mut self, data: StateData<'_, GameData<'_, '_>>) {
+        self.fastforward = false; // reset
+
+        let mut goto = data.world.try_fetch_mut::<Goto>().unwrap();
+        if let Some(passage_group_id) = goto.passage_group_id.take() {
+            log::debug!("Got goto={}", passage_group_id);
+            let billboard = &mut data.world.write_resource::<BillboardData>();
+            let dialogue_storage = data.world.read_resource::<AssetStorage<Dialogue>>();
+            let dialogue = dialogue_storage
+                .get_by_id(self.dialogue_handle.id())
+                .unwrap();
+            billboard.passage_group = dialogue
+                .passage_groups
+                .iter()
+                .position(|group| group.id.as_ref() == Some(&passage_group_id))
+                .unwrap();
+        }
     }
 
     fn fixed_update(&mut self, data: StateData<'_, GameData<'_, '_>>) -> SimpleTrans {
@@ -192,7 +208,14 @@ impl SimpleState for PlaybackState {
 
             if ui_text
                 .get_mut(self.speaker_name_txt)
-                .map(|t| t.text = format!("// {}", &group.speaker))
+                .map(|t| {
+                    t.text = group
+                        .speaker
+                        .as_ref()
+                        .map(|s| s.as_str())
+                        .unwrap_or("")
+                        .to_string()
+                })
                 .is_some()
             {
                 let mut since = billboard.secs_since_last_reveal.unwrap_or_default();
@@ -246,9 +269,127 @@ impl SimpleState for PlaybackState {
                 }
             }
 
+            let has_choices = group
+                .choices
+                .as_ref()
+                .map(|v| !v.is_empty())
+                .unwrap_or(false);
+            if last_passage && has_choices {
+                return Trans::Push(Box::new(ChoiceState::new(group.choices.clone().unwrap())));
+            }
+
             Trans::Push(Box::new(PromptState::new("confirm")))
         }
     }
+}
+
+struct ChoiceState {
+    choices: Vec<Choice>,
+    buttons: Vec<Entity>,
+    font: Option<FontHandle>,
+}
+
+impl ChoiceState {
+    pub fn new(choices: Vec<Choice>) -> ChoiceState {
+        let buttons = Vec::with_capacity(choices.len());
+        ChoiceState {
+            choices,
+            buttons,
+            font: None,
+        }
+    }
+}
+
+impl SimpleState for ChoiceState {
+    fn on_start(&mut self, data: StateData<'_, GameData<'_, '_>>) {
+        let world = data.world;
+        self.font = Some(world.read_resource::<Loader>().load(
+            "font/CC Accidenz Commons-medium.ttf",
+            TtfFormat,
+            (),
+            &world.read_resource(),
+        ));
+
+        // we don't want to capture `self` in the closure below.
+        let font = self.font.clone().unwrap();
+
+        self.buttons = self
+            .choices
+            .iter()
+            // rev to make it so that the idx is lower for the later choices
+            // Since y goes "up" based on the bottom left anchors, we want the
+            // earlier items to have higher values than the later ones for the
+            // purpose of generating y offsets.
+            .rev()
+            .enumerate()
+            .map(move |(idx, choice)| {
+                let mut ui_text =
+                    UiText::new(font.clone(), choice.label.clone(), [0., 0., 0., 1.], 20.0);
+                ui_text.align = Anchor::MiddleLeft;
+
+                const GUTTER_V: f32 = 4.;
+                const BTN_HEIGHT: f32 = 30.;
+                const BTN_WIDTH: f32 = 100.;
+                // Mainly used to make room for the billboard bezel.
+                const PADDING: f32 = 30.;
+
+                world
+                    .create_entity()
+                    .with(UiTransform::new(
+                        choice.label.clone(),
+                        Anchor::BottomLeft,
+                        Anchor::BottomLeft,
+                        PADDING,
+                        (idx as f32 * (BTN_HEIGHT + GUTTER_V)) + PADDING,
+                        3., // z index
+                        BTN_WIDTH,
+                        BTN_HEIGHT,
+                    ))
+                    .with(ui_text)
+                    .with(Interactable)
+                    .build()
+            })
+            // rev again so that the button index lines up with the choice index.
+            .rev()
+            .collect();
+    }
+
+    fn on_stop(&mut self, data: StateData<'_, GameData<'_, '_>>) {
+        data.world.delete_entities(&self.buttons).unwrap();
+        self.buttons.clear();
+    }
+
+    fn handle_event(
+        &mut self,
+        data: StateData<'_, GameData<'_, '_>>,
+        event: StateEvent<StringBindings>,
+    ) -> SimpleTrans {
+        if let StateEvent::Ui(ui_event) = event {
+            match ui_event.event_type {
+                UiEventType::Click => {
+                    if let Some(btn_idx) = self.buttons.iter().position(|e| e == &ui_event.target) {
+                        let mut goto = data.world.try_fetch_mut::<Goto>().unwrap();
+                        goto.passage_group_id = self.choices[btn_idx].goto.clone();
+                        return Trans::Pop;
+                    }
+                }
+                _ => {
+                    return SimpleTrans::None;
+                }
+            };
+        }
+        SimpleTrans::None
+    }
+}
+
+/// A `Resource` to track the outcomes of `ChoiceState`s.
+///
+/// If a button in a `ChoiceState` is activated, the value of it's `goto` field
+/// will be written to this `Resource`.
+#[derive(Default)]
+struct Goto {
+    /// A passage group to jump to.
+    passage_group_id: Option<String>,
 }
 
 // FIXME: add a bool field for "hidden" which will drive the entity modifications over time.

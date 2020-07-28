@@ -6,12 +6,28 @@ use amethyst::{
 };
 use serde::Deserialize;
 
+/// Sections that include one or more choices will present a menu to the player
+/// once all the passage text has been shown. The last passage will be displayed
+/// as the prompt for the choices.
+#[derive(Debug, Deserialize, PartialEq, Eq, Clone)]
+pub struct Choice {
+    /// The text to display in the menu.
+    pub label: String,
+    /// When  specified, this is used as a section (matched by id) to jump to.
+    /// If no goto is listed, the choice simply advances to the next section.
+    pub goto: Option<String>,
+}
+
 /// A sequence of passages, associated with a speaker.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Deserialize)]
 pub struct PassageGroup {
-    pub speaker: String,
+    /// This optional id is how `Choice`s find the passage group to jump to when
+    /// a value for `goto` is set.
+    pub id: Option<String>,
+    pub speaker: Option<String>,
     /// Blocks of text to show, one by one.
     pub passages: Vec<String>,
+    pub choices: Option<Vec<Choice>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Deserialize)]
