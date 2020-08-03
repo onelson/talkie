@@ -4,7 +4,7 @@ use amethyst::error::Error;
 use pest::{iterators::Pair, Parser};
 
 #[derive(pest_derive::Parser)]
-#[grammar = "assets/dialogue/dialogue.pest"]
+#[grammar = "assets/dialogue.pest"]
 struct DialogueParser;
 
 pub fn parse(input: &str) -> Result<Dialogue, Error> {

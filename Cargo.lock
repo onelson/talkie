@@ -3428,6 +3428,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "talkie-game"
+version = "0.1.0"
+dependencies = [
+ "amethyst",
+ "log",
+ "serde",
+ "talkie",
+ "toml",
+]
+
+[[package]]
 name = "thiserror"
 version = "1.0.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"

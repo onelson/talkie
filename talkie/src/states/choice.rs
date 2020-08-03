@@ -1,4 +1,4 @@
-use crate::assets::dialogue::Choice;
+use crate::assets::Choice;
 use amethyst::assets::Loader;
 use amethyst::core::ecs::{Builder, Entity, WorldExt};
 use amethyst::input::StringBindings;

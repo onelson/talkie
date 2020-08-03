@@ -1,4 +1,4 @@
-use crate::assets::dialogue::{DialogueFormat, DialogueHandle};
+use crate::assets::{DialogueFormat, DialogueHandle};
 use crate::states::playback::PlaybackState;
 use amethyst::assets::{Loader, ProgressCounter};
 use amethyst::core::ecs::{Builder, WorldExt};
@@ -16,7 +16,7 @@ mod prompt;
 /// The "billboard" is the lower half of the window where dialogue text will
 /// appear.
 #[derive(Default)]
-pub struct BillboardData {
+struct BillboardData {
     pub dialogue_id: u32,
     /// tracks the current length of *displayed text*.
     pub head: usize,
