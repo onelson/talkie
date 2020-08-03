@@ -1,4 +1,3 @@
-use crate::utils::reflow_text;
 use amethyst::{
     assets::{Asset, Format, Handle},
     ecs::HashMapStorage,
@@ -71,5 +70,67 @@ impl Format<Dialogue> for DialogueFormat {
 
     fn import_simple(&self, bytes: Vec<u8>) -> Result<Dialogue, Error> {
         Ok(Dialogue::from_slice(&bytes)?)
+    }
+}
+
+/// Elide consecutive lines of text.
+///
+/// Single line breaks are joined and double line breaks are converted to single
+/// line breaks.
+///
+/// A quirk of how this works is you'll find an extra space at the end of each
+/// line. In practice this might not matter to you, but in the case that it
+/// does... too bad!
+fn reflow_text(input: &str) -> String {
+    input.lines().fold(String::new(), |mut acc, s| {
+        let s = s.trim();
+        let sep = if s.is_empty() { "\n" } else { " " };
+        acc.push_str(s);
+        acc.push_str(sep);
+        acc
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_reflow_single_line() {
+        assert_eq!("abc", reflow_text("abc").trim());
+    }
+
+    #[test]
+    fn test_reflow_lines_no_blanks() {
+        assert_eq!(
+            "abc def ",
+            reflow_text(
+                "
+                abc
+                def
+                "
+                .trim()
+            )
+        );
+    }
+
+    #[test]
+    fn test_reflow_lines_with_blanks() {
+        assert_eq!(
+            "\
+abc def 
+ghi jkl \
+",
+            reflow_text(
+                "
+        abc
+        def
+        
+        ghi
+        jkl
+        "
+                .trim()
+            )
+        );
     }
 }

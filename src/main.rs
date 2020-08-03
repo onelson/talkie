@@ -1,4 +1,3 @@
-use crate::assets::dialogue::Dialogue;
 use amethyst::{
     assets::Processor,
     core::transform::TransformBundle,
@@ -13,13 +12,8 @@ use amethyst::{
     utils::application_root_dir,
 };
 
-mod assets;
-mod components;
-mod states;
-mod systems;
-mod utils;
-
-use states::LoadingState;
+use talkie::assets::Dialogue;
+use talkie::states::LoadingState;
 
 fn main() -> amethyst::Result<()> {
     amethyst::start_logger(Default::default());
@@ -46,7 +40,7 @@ fn main() -> amethyst::Result<()> {
         .with_bundle(UiBundle::<StringBindings>::new())?
         .with(Processor::<Dialogue>::new(), "dialogue_processor", &[])
         .with(
-            systems::ActionTrackerSystem,
+            talkie::systems::ActionTrackerSystem,
             "action_tracker",
             &["input_system"],
         );

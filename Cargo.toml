@@ -1,5 +1,5 @@
 [package]
-name = "talkie"
+name = "talkie-game"
 version = "0.1.0"
 authors = []
 edition = "2018"
@@ -9,12 +9,14 @@ amethyst = "0.15.0"
 log = "0.4.8"
 toml = "0.5.6"
 serde = { version = "1.0.114", features = ["derive"] }
-
-[dev-dependencies]
-assert_approx_eq = "1.1.0"
-
+talkie = { path = "talkie" }
 [features]
 default = ["vulkan"]
 empty = ["amethyst/empty"]
 metal = ["amethyst/metal"]
 vulkan = ["amethyst/vulkan"]
+
+[workspace]
+members = [
+    "talkie"
+]
