@@ -3,7 +3,6 @@ use crate::components::ActionTracker;
 use crate::states::choice::{ChoiceState, Goto};
 use crate::states::prompt::PromptState;
 use crate::states::BillboardData;
-use crate::utils::calc_glyphs_to_reveal;
 use amethyst::assets::AssetStorage;
 use amethyst::core::ecs::{Builder, Entity, WorldExt};
 use amethyst::core::Time;
@@ -18,6 +17,14 @@ use amethyst::{GameData, SimpleState, SimpleTrans, StateData, Trans};
 /// unset while constructing a new `PlaybackState`.
 const DEFAULT_GLYPHS_PER_SEC: f32 = 18.0;
 const TALKIE_SPEED_FACTOR: f32 = 30.0;
+
+/// Given some amount of time, use the rate to determine how much of the time
+/// went unused and how many glyphs should now be revealed.
+fn calc_glyphs_to_reveal(delta_secs: f32, glyphs_per_sec: f32) -> (usize, f32) {
+    let reveal_how_many = (delta_secs * glyphs_per_sec).trunc();
+    let remainder = delta_secs - (reveal_how_many / glyphs_per_sec);
+    (reveal_how_many as usize, remainder)
+}
 
 /// Render the dialogue text over time.
 pub struct PlaybackState {
