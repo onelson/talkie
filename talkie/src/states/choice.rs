@@ -1,7 +1,8 @@
 use crate::assets::Choice;
+use crate::components::ActionTracker;
 use amethyst::assets::Loader;
-use amethyst::core::ecs::{Builder, Entity, WorldExt};
-use amethyst::input::StringBindings;
+use amethyst::core::ecs::{Builder, Entity, World, WorldExt};
+use amethyst::input::{InputHandler, StringBindings};
 use amethyst::ui::{Anchor, FontHandle, Interactable, TtfFormat, UiEventType, UiText, UiTransform};
 use amethyst::{GameData, SimpleState, SimpleTrans, StateData, StateEvent, Trans};
 
@@ -19,11 +20,27 @@ pub struct ChoiceState {
     choices: Vec<Choice>,
     buttons: Vec<Entity>,
     font: Option<FontHandle>,
+    // y offsets for each of the buttons.
+    ys: Vec<f32>,
+    cursor_pos: usize,
+
+    // trackers
+    confirm: ActionTracker,
+    up: ActionTracker,
+    down: ActionTracker,
 }
+
+const GUTTER_V: f32 = 4.;
+const BTN_HEIGHT: f32 = 30.;
+const BTN_WIDTH: f32 = 100.;
+// Mainly used to make room for the billboard bezel.
+const PADDING: f32 = 30.;
 
 impl SimpleState for ChoiceState {
     fn on_start(&mut self, data: StateData<'_, GameData<'_, '_>>) {
         let world = data.world;
+        self.poll_inputs(world);
+
         self.font = Some(world.read_resource::<Loader>().load(
             "font/CC Accidenz Commons-medium.ttf",
             TtfFormat,
@@ -35,24 +52,13 @@ impl SimpleState for ChoiceState {
         let font = self.font.clone().unwrap();
 
         self.buttons = self
-            .choices
+            .ys
             .iter()
-            // rev to make it so that the idx is lower for the later choices
-            // Since y goes "up" based on the bottom left anchors, we want the
-            // earlier items to have higher values than the later ones for the
-            // purpose of generating y offsets.
-            .rev()
-            .enumerate()
-            .map(move |(idx, choice)| {
+            .zip(self.choices.iter())
+            .map(move |(&y, choice)| {
                 let mut ui_text =
                     UiText::new(font.clone(), choice.label.clone(), [0., 0., 0., 1.], 20.0);
                 ui_text.align = Anchor::MiddleLeft;
-
-                const GUTTER_V: f32 = 4.;
-                const BTN_HEIGHT: f32 = 30.;
-                const BTN_WIDTH: f32 = 100.;
-                // Mainly used to make room for the billboard bezel.
-                const PADDING: f32 = 30.;
 
                 world
                     .create_entity()
@@ -61,7 +67,7 @@ impl SimpleState for ChoiceState {
                         Anchor::BottomLeft,
                         Anchor::BottomLeft,
                         PADDING,
-                        (idx as f32 * (BTN_HEIGHT + GUTTER_V)) + PADDING,
+                        y,
                         3., // z index
                         BTN_WIDTH,
                         BTN_HEIGHT,
@@ -70,8 +76,6 @@ impl SimpleState for ChoiceState {
                     .with(Interactable)
                     .build()
             })
-            // rev again so that the button index lines up with the choice index.
-            .rev()
             .collect();
     }
 
@@ -85,6 +89,12 @@ impl SimpleState for ChoiceState {
         data: StateData<'_, GameData<'_, '_>>,
         event: StateEvent<StringBindings>,
     ) -> SimpleTrans {
+        self.poll_inputs(data.world);
+        log::info!(
+            "cursor => {} {:?}",
+            self.cursor_pos,
+            self.choices[self.cursor_pos]
+        );
         if let StateEvent::Ui(ui_event) = event {
             match ui_event.event_type {
                 UiEventType::Click => {
@@ -105,11 +115,43 @@ impl SimpleState for ChoiceState {
 
 impl ChoiceState {
     pub fn new(choices: Vec<Choice>) -> ChoiceState {
-        let buttons = Vec::with_capacity(choices.len());
+        let count = choices.len();
+        let buttons = Vec::with_capacity(count);
         ChoiceState {
             choices,
+            cursor_pos: 0,
             buttons,
             font: None,
+            ys: (0..count)
+                .map(|idx| (count - idx) as f32 * (BTN_HEIGHT + GUTTER_V))
+                .collect(),
+
+            confirm: ActionTracker::new("confirm"),
+            up: ActionTracker::new("up"),
+            down: ActionTracker::new("down"),
+        }
+    }
+
+    fn poll_inputs(&mut self, world: &mut World) {
+        let input = world.read_resource::<InputHandler<StringBindings>>();
+        self.confirm.update(&input);
+        self.down.update(&input);
+        self.up.update(&input);
+
+        if self.up.press_begin() {
+            self.cursor_pos = if self.cursor_pos > 0 {
+                self.cursor_pos - 1
+            } else {
+                0
+            };
+        } else if self.down.press_begin() {
+            // choices better me non-empty...
+            let max = self.choices.len() - 1;
+            self.cursor_pos = if self.cursor_pos < max {
+                self.cursor_pos + 1
+            } else {
+                max
+            };
         }
     }
 }
