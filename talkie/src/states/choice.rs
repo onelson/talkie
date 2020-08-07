@@ -2,9 +2,10 @@ use crate::assets::Choice;
 use crate::components::ActionTracker;
 use amethyst::assets::Loader;
 use amethyst::core::ecs::{Builder, Entity, World, WorldExt};
+use amethyst::core::HiddenPropagate;
 use amethyst::input::{InputHandler, StringBindings};
-use amethyst::ui::{Anchor, FontHandle, Interactable, TtfFormat, UiEventType, UiText, UiTransform};
-use amethyst::{GameData, SimpleState, SimpleTrans, StateData, StateEvent, Trans};
+use amethyst::ui::{Anchor, FontHandle, TtfFormat, UiFinder, UiText, UiTransform};
+use amethyst::{GameData, SimpleState, SimpleTrans, StateData, Trans};
 
 /// A `Resource` to track the outcomes of `ChoiceState`s.
 ///
@@ -23,6 +24,7 @@ pub struct ChoiceState {
     // y offsets for each of the buttons.
     ys: Vec<f32>,
     cursor_pos: usize,
+    cursor_gfx: Option<Entity>,
 
     // trackers
     confirm: ActionTracker,
@@ -31,10 +33,8 @@ pub struct ChoiceState {
 }
 
 const GUTTER_V: f32 = 4.;
-const BTN_HEIGHT: f32 = 30.;
+const BTN_HEIGHT: f32 = 32.;
 const BTN_WIDTH: f32 = 100.;
-// Mainly used to make room for the billboard bezel.
-const PADDING: f32 = 30.;
 
 impl SimpleState for ChoiceState {
     fn on_start(&mut self, data: StateData<'_, GameData<'_, '_>>) {
@@ -66,14 +66,13 @@ impl SimpleState for ChoiceState {
                         choice.label.clone(),
                         Anchor::BottomLeft,
                         Anchor::BottomLeft,
-                        PADDING,
+                        60.,
                         y,
                         3., // z index
                         BTN_WIDTH,
                         BTN_HEIGHT,
                     ))
                     .with(ui_text)
-                    .with(Interactable)
                     .build()
             })
             .collect();
@@ -82,34 +81,46 @@ impl SimpleState for ChoiceState {
     fn on_stop(&mut self, data: StateData<'_, GameData<'_, '_>>) {
         data.world.delete_entities(&self.buttons).unwrap();
         self.buttons.clear();
+
+        if let Some(gfx) = self.cursor_gfx {
+            let mut storage = data.world.write_storage::<HiddenPropagate>();
+            let _ = storage.insert(gfx, HiddenPropagate::new());
+        }
     }
 
-    fn handle_event(
-        &mut self,
-        data: StateData<'_, GameData<'_, '_>>,
-        event: StateEvent<StringBindings>,
-    ) -> SimpleTrans {
-        self.poll_inputs(data.world);
-        log::info!(
-            "cursor => {} {:?}",
-            self.cursor_pos,
-            self.choices[self.cursor_pos]
-        );
-        if let StateEvent::Ui(ui_event) = event {
-            match ui_event.event_type {
-                UiEventType::Click => {
-                    if let Some(btn_idx) = self.buttons.iter().position(|e| e == &ui_event.target) {
-                        let mut goto = data.world.try_fetch_mut::<Goto>().unwrap();
-                        goto.passage_group_id = self.choices[btn_idx].goto.clone();
-                        return Trans::Pop;
-                    }
-                }
-                _ => {
-                    return SimpleTrans::None;
-                }
-            };
+    fn fixed_update(&mut self, data: StateData<'_, GameData<'_, '_>>) -> SimpleTrans {
+        if self.confirm.press_begin() {
+            log::debug!(
+                "cursor => {} {:?}",
+                self.cursor_pos,
+                self.choices[self.cursor_pos]
+            );
+            let mut goto = data.world.try_fetch_mut::<Goto>().unwrap();
+            goto.passage_group_id = self.choices[self.cursor_pos].goto.clone();
+            return Trans::Pop;
         }
         SimpleTrans::None
+    }
+
+    fn shadow_update(&mut self, data: StateData<'_, GameData<'_, '_>>) {
+        let world = data.world;
+
+        if self.cursor_gfx.is_none() {
+            world.exec(|ui_finder: UiFinder| {
+                self.cursor_gfx = ui_finder.find("cursor");
+            });
+        }
+
+        if let Some(gfx) = self.cursor_gfx {
+            let mut storage = world.write_storage::<HiddenPropagate>();
+            let _ = storage.remove(gfx);
+
+            let mut storage = world.write_storage::<UiTransform>();
+            let xform = storage.get_mut(gfx).unwrap();
+            xform.local_y = self.ys[self.cursor_pos];
+        }
+
+        self.poll_inputs(world);
     }
 }
 
@@ -120,6 +131,7 @@ impl ChoiceState {
         ChoiceState {
             choices,
             cursor_pos: 0,
+            cursor_gfx: None,
             buttons,
             font: None,
             ys: (0..count)

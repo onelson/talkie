@@ -36,7 +36,21 @@ Container(
                 pivot: BottomRight,
                 hidden: true
             ),
-            image: Texture(File("img/icons.png", ("IMAGE", ()))),
+            image: Texture(File("img/next-page-icon.png", ("IMAGE", ()))),
+        ),
+        Image(
+            transform: (
+                id: "cursor",
+                y: 0.,
+                x: 20.,
+                z: 2.,
+                width: 32.,
+                height: 32.,
+                anchor: BottomLeft,
+                pivot: BottomLeft,
+                hidden: true
+            ),
+            image: Texture(File("img/cursor-icon.png", ("IMAGE", ()))),
         ),
         Label(
             transform: (
