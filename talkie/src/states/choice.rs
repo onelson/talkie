@@ -2,7 +2,7 @@ use crate::assets::Choice;
 use crate::components::ActionTracker;
 use amethyst::assets::Loader;
 use amethyst::core::ecs::{Builder, Entity, World, WorldExt};
-use amethyst::core::HiddenPropagate;
+use amethyst::core::Hidden;
 use amethyst::input::{InputHandler, StringBindings};
 use amethyst::ui::{Anchor, FontHandle, TtfFormat, UiFinder, UiText, UiTransform};
 use amethyst::{GameData, SimpleState, SimpleTrans, StateData, Trans};
@@ -83,8 +83,8 @@ impl SimpleState for ChoiceState {
         self.buttons.clear();
 
         if let Some(gfx) = self.cursor_gfx {
-            let mut storage = data.world.write_storage::<HiddenPropagate>();
-            let _ = storage.insert(gfx, HiddenPropagate::new());
+            let mut storage = data.world.write_storage::<Hidden>();
+            let _ = storage.insert(gfx, Hidden);
         }
     }
 
@@ -112,7 +112,7 @@ impl SimpleState for ChoiceState {
         }
 
         if let Some(gfx) = self.cursor_gfx {
-            let mut storage = world.write_storage::<HiddenPropagate>();
+            let mut storage = world.write_storage::<Hidden>();
             let _ = storage.remove(gfx);
 
             let mut storage = world.write_storage::<UiTransform>();

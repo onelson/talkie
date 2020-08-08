@@ -24,34 +24,6 @@ Container(
             ),
             image: Texture(File("img/billboard.png", ("IMAGE", ()))),
         ),
-        Image(
-            transform: (
-                id: "next_page",
-                y: 6.,
-                x: -20.,
-                z: 2.,
-                width: 32.,
-                height: 32.,
-                anchor: BottomRight,
-                pivot: BottomRight,
-                hidden: true
-            ),
-            image: Texture(File("img/next-page-icon.png", ("IMAGE", ()))),
-        ),
-        Image(
-            transform: (
-                id: "cursor",
-                y: 0.,
-                x: 20.,
-                z: 2.,
-                width: 32.,
-                height: 32.,
-                anchor: BottomLeft,
-                pivot: BottomLeft,
-                hidden: true
-            ),
-            image: Texture(File("img/cursor-icon.png", ("IMAGE", ()))),
-        ),
         Label(
             transform: (
                 id: "speaker_name",
