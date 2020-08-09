@@ -7,7 +7,6 @@ use amethyst::assets::AssetStorage;
 use amethyst::core::ecs::{Builder, Entity, WorldExt};
 use amethyst::core::Time;
 use amethyst::input::{InputHandler, StringBindings};
-use amethyst::renderer::Transparent;
 use amethyst::ui::UiText;
 use amethyst::{GameData, SimpleState, SimpleTrans, StateData, Trans};
 
@@ -35,7 +34,7 @@ pub struct PlaybackState {
     speaker_name_txt: Entity,
     dialogue_txt: Entity,
     /// When true, the text reveal speed is scaled up.
-    fastforward: bool,
+    fast_forward: bool,
 }
 
 impl PlaybackState {
@@ -52,7 +51,7 @@ impl PlaybackState {
             speaker_name_txt,
             dialogue_txt,
             tracker: ActionTracker::new("confirm"),
-            fastforward: false,
+            fast_forward: false,
         }
     }
 }
@@ -69,12 +68,12 @@ impl SimpleState for PlaybackState {
             secs_since_last_reveal: None,
         });
 
-        let billboard = world.create_entity().with(Transparent).build();
+        let billboard = world.create_entity().build();
         world.insert(billboard);
     }
 
     fn on_resume(&mut self, data: StateData<'_, GameData<'_, '_>>) {
-        self.fastforward = false; // reset
+        self.fast_forward = false; // reset
 
         let mut goto = data.world.try_fetch_mut::<Goto>().unwrap();
         if let Some(passage_group_id) = goto.passage_group_id.take() {
@@ -97,10 +96,10 @@ impl SimpleState for PlaybackState {
         self.tracker.update(&input);
 
         if self.tracker.press_begin() {
-            self.fastforward = true;
+            self.fast_forward = true;
         }
         if self.tracker.press_end() {
-            self.fastforward = false;
+            self.fast_forward = false;
         }
 
         let billboard = &mut data.world.write_resource::<BillboardData>();
@@ -138,7 +137,7 @@ impl SimpleState for PlaybackState {
                 let (reveal_how_many, remainder) = calc_glyphs_to_reveal(
                     since,
                     self.glyphs_per_sec
-                        * if self.fastforward {
+                        * if self.fast_forward {
                             TALKIE_SPEED_FACTOR
                         } else {
                             1.0
