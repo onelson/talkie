@@ -102,6 +102,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "amethyst-aseprite"
+version = "0.1.0"
+dependencies = [
+ "amethyst",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "amethyst_animation"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3121,9 +3130,9 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.53"
+version = "1.0.57"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "993948e75b189211a9b31a7528f950c6adc21f9720b6438ff80a7fa2f864cea2"
+checksum = "164eacbdb13512ec2745fb09d51fd5b22b0d65ed294a1dcf7285a360c80a675c"
 dependencies = [
  "itoa",
  "ryu",
@@ -3421,6 +3430,7 @@ name = "talkie"
 version = "0.1.0"
 dependencies = [
  "amethyst",
+ "amethyst-aseprite",
  "assert_approx_eq",
  "log",
  "serde",
