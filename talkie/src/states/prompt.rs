@@ -1,6 +1,6 @@
 use crate::components::ActionTracker;
 use amethyst::core::ecs::{Entity, WorldExt};
-use amethyst::core::HiddenPropagate;
+use amethyst::core::Hidden;
 use amethyst::input::{InputHandler, StringBindings};
 use amethyst::ui::UiFinder;
 use amethyst::{GameData, SimpleState, SimpleTrans, StateData, Trans};
@@ -44,8 +44,8 @@ impl SimpleState for PromptState {
 
     fn on_stop(&mut self, data: StateData<'_, GameData<'_, '_>>) {
         if let Some(icon) = self.icon {
-            let mut storage = data.world.write_storage::<HiddenPropagate>();
-            let _ = storage.insert(icon, HiddenPropagate::new());
+            let mut storage = data.world.write_storage::<Hidden>();
+            let _ = storage.insert(icon, Hidden);
         }
     }
 
@@ -53,7 +53,7 @@ impl SimpleState for PromptState {
         match self.icon {
             None => return Trans::None,
             Some(icon) => {
-                let mut storage = data.world.write_storage::<HiddenPropagate>();
+                let mut storage = data.world.write_storage::<Hidden>();
                 let _ = storage.remove(icon);
             }
         }
