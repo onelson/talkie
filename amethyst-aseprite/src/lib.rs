@@ -36,7 +36,7 @@ struct AsepriteExport {
 }
 
 #[derive(Debug, Clone)]
-pub struct AsepriteFormat(Handle<Texture>);
+pub struct AsepriteFormat(pub Handle<Texture>);
 
 impl Format<SpriteSheet> for AsepriteFormat {
     fn name(&self) -> &'static str {
