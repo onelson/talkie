@@ -1,8 +1,9 @@
 use amethyst::assets::{AssetStorage, Handle, Loader};
 use amethyst::core::ecs::{Builder, Entity, World, WorldExt};
 use amethyst::core::Hidden;
-use amethyst::renderer::{ImageFormat, SpriteRender, SpriteSheet, SpriteSheetFormat, Texture};
+use amethyst::renderer::{ImageFormat, SpriteRender, SpriteSheet, Texture};
 use amethyst::ui::{Anchor, UiImage, UiTransform};
+use amethyst_aseprite::AsepriteFormat;
 
 fn load_texture<N>(name: N, world: &World) -> Handle<Texture>
 where
@@ -23,12 +24,12 @@ where
 {
     let loader = world.read_resource::<Loader>();
     let storage = world.read_resource::<AssetStorage<SpriteSheet>>();
-    loader.load(name, SpriteSheetFormat(tex), (), &storage)
+    loader.load(name, AsepriteFormat(tex), (), &storage)
 }
 
 pub fn build_sprite_sheet(world: &World) -> Handle<SpriteSheet> {
     let tex = load_texture("img/icons.png", world);
-    load_sprite_sheet("icons.ron", tex, world)
+    load_sprite_sheet("img/icons.json", tex, world)
 }
 
 fn ui_image_from_sprite(sprite_number: usize, sprite_sheet: Handle<SpriteSheet>) -> UiImage {

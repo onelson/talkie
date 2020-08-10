@@ -18,5 +18,6 @@ vulkan = ["amethyst/vulkan"]
 
 [workspace]
 members = [
-    "talkie"
+    "talkie",
+    "amethyst-aseprite"
 ]
