@@ -19,5 +19,6 @@ vulkan = ["amethyst/vulkan"]
 [workspace]
 members = [
     "talkie",
-    "amethyst-aseprite"
+    "amethyst-aseprite",
+    "omn-sprites-amethyst-ext"
 ]

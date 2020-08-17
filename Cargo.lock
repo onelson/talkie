@@ -2091,6 +2091,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "omn-sprites"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2604cdf1200fda2f8842a9576d3211de788b4f86984a9c228e9d25f34ca6f2d0"
+dependencies = [
+ "serde",
+ "serde_derive",
+ "serde_json",
+]
+
+[[package]]
+name = "omn-sprites-amethyst-ext"
+version = "0.1.0"
+dependencies = [
+ "amethyst",
+ "omn-sprites",
+ "serde_json",
+]
+
+[[package]]
 name = "ordered-float"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
