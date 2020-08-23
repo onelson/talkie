@@ -1,5 +1,5 @@
 use crate::assets::{DialogueFormat, DialogueHandle};
-use crate::icons::build_sprite_sheet;
+use crate::sprites::{build_sprite_sheet, load_clip_store};
 use crate::states::playback::PlaybackState;
 use amethyst::assets::{Handle, Loader, ProgressCounter};
 use amethyst::core::ecs::{Builder, WorldExt};
@@ -9,7 +9,7 @@ use amethyst::renderer::{Camera, SpriteSheet};
 use amethyst::ui::{UiCreator, UiFinder};
 use amethyst::window::ScreenDimensions;
 use amethyst::{GameData, SimpleState, SimpleTrans, StateData, Trans};
-
+use omn_sprites_amethyst_ext::ClipStoreHandle;
 mod choice;
 mod playback;
 mod prompt;
@@ -37,7 +37,9 @@ pub struct LoadingState {
     path: String,
     dialogue_handle: Option<DialogueHandle>,
     dialogue_progress: ProgressCounter,
-    sprite_sheet: Option<Handle<SpriteSheet>>,
+    icons: Option<Handle<SpriteSheet>>,
+    slime: Option<Handle<SpriteSheet>>,
+    slime_clips: Option<ClipStoreHandle>,
     ui_progress: ProgressCounter,
 }
 
@@ -47,7 +49,9 @@ impl LoadingState {
             path: dialogue_path.into(),
             dialogue_handle: None,
             dialogue_progress: ProgressCounter::new(),
-            sprite_sheet: None,
+            icons: None,
+            slime: None,
+            slime_clips: None,
             ui_progress: ProgressCounter::new(),
         }
     }
@@ -57,9 +61,15 @@ impl SimpleState for LoadingState {
     fn on_start(&mut self, data: StateData<'_, GameData<'_, '_>>) {
         let world = data.world;
 
-        let sprite_sheet = build_sprite_sheet(world);
-        crate::icons::build_icon_entities(sprite_sheet.clone(), world);
-        self.sprite_sheet = Some(sprite_sheet);
+        let icons = build_sprite_sheet("img/icons.png", "img/icons.json", world);
+        crate::sprites::build_icon_entities(icons.clone(), world);
+        self.icons = Some(icons);
+
+        let slime = build_sprite_sheet("slime/slime.png", "slime/slime.json", world);
+        crate::sprites::build_slime_entity(slime.clone(), world);
+        self.slime = Some(slime);
+        let slime_clips = load_clip_store("slime/slime.json", world);
+        self.slime_clips = Some(slime_clips);
 
         self.dialogue_handle = Some(world.read_resource::<Loader>().load(
             &self.path,

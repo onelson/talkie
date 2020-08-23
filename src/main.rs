@@ -14,6 +14,7 @@ use amethyst::{
 
 use talkie::assets::Dialogue;
 use talkie::states::LoadingState;
+use talkie::ClipStore;
 
 fn main() -> amethyst::Result<()> {
     amethyst::start_logger(Default::default());
@@ -39,6 +40,7 @@ fn main() -> amethyst::Result<()> {
         .with_bundle(TransformBundle::new())?
         .with_bundle(UiBundle::<StringBindings>::new())?
         .with(Processor::<Dialogue>::new(), "dialogue_processor", &[])
+        .with(Processor::<ClipStore>::new(), "clip_store_processor", &[])
         .with(
             talkie::systems::ActionTrackerSystem,
             "action_tracker",

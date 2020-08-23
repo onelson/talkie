@@ -3453,6 +3453,7 @@ dependencies = [
  "amethyst-aseprite",
  "assert_approx_eq",
  "log",
+ "omn-sprites-amethyst-ext",
  "serde",
  "toml",
 ]
