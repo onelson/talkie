@@ -2,22 +2,26 @@
 name = "talkie-game"
 version = "0.1.0"
 authors = []
-edition = "2018"
+edition = "2021"
 
 [dependencies]
-amethyst = "0.15.0"
-log = "0.4.8"
+bevy = { version="0.8.1", features=["dynamic"] }
+leafwing-input-manager = "0.5.2"
 toml = "0.5.6"
 serde = { version = "1.0.114", features = ["derive"] }
-talkie = { path = "talkie" }
-[features]
-default = ["vulkan"]
-empty = ["amethyst/empty"]
-metal = ["amethyst/metal"]
-vulkan = ["amethyst/vulkan"]
+iyes_loopless = "0.7.1"
+#talkie = { path = "talkie" }
 
 [workspace]
-members = [
-    "talkie",
-    "amethyst-aseprite"
-]
+resolver = "2"
+#members = [
+#    "talkie",
+#]
+
+# Enable a small amount of optimization in debug mode
+[profile.dev]
+opt-level = 1
+
+# Enable high optimizations for dependencies (incl. Bevy), but not for our code:
+[profile.dev.package."*"]
+opt-level = 3

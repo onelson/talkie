@@ -4,24 +4,14 @@
 //! and resources) in each tick of the game loop.
 
 use crate::components::ActionTracker;
-use amethyst::{
-    derive::SystemDesc,
-    ecs::{Join, Read, System, SystemData, WriteStorage},
-    input::{InputHandler, StringBindings},
+use bevy::{
+    input::{keyboard::KeyCode, Input},
+    prelude::*,
 };
 
-#[derive(SystemDesc)]
-pub struct ActionTrackerSystem;
-
-impl<'s> System<'s> for ActionTrackerSystem {
-    type SystemData = (
-        WriteStorage<'s, ActionTracker>,
-        Read<'s, InputHandler<StringBindings>>,
-    );
-
-    fn run(&mut self, (mut tracker, input): Self::SystemData) {
-        for tracker in (&mut tracker).join() {
-            tracker.update(&input);
-        }
+fn action_tracker(query: Query<Res<Input<KeyCode>>, With<ActionTracker>>) {
+    for tracker in query.iter() {
+        let input = (); // FIXME
+        tracker.update(&input);
     }
 }

@@ -37,7 +37,7 @@ impl ActionTracker {
         self.press_end
     }
 
-    pub fn update(&mut self, input: &InputHandler<StringBindings>) {
+    pub fn update(&mut self, input: &()) {
         let is_down = input.action_is_down(&self.action).unwrap_or(false);
         match (is_down, self.pressed) {
             (true, false) => {
@@ -65,8 +65,4 @@ impl ActionTracker {
             }
         }
     }
-}
-
-impl Component for ActionTracker {
-    type Storage = HashMapStorage<Self>;
 }
