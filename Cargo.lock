@@ -2884,12 +2884,14 @@ dependencies = [
 name = "talkie-game"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "bevy",
  "iyes_loopless",
  "leafwing-input-manager",
  "rand",
  "serde",
  "toml",
+ "tracing",
 ]
 
 [[package]]

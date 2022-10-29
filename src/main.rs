@@ -60,20 +60,41 @@ fn main() {
         .run();
 }
 
-#[derive(Component)]
-struct Billboard;
+// XXX: most fields were lifted from `states::BillboardData`.
+// The amethyst version held a handle to an asset for the dialogue data.
+// This should probably be true here as well, but inlining the data to start.
+#[derive(Component, Debug, Default)]
+struct Billboard {
+    /// Tracks the current length of *displayed text*.
+    head: usize,
+    /// tracks which passage group we're iterating through.
+    passage_group: usize,
+    /// tracks which passage we're showing.
+    passage: usize,
+    /// Tracks the time since the last glyph was revealed.
+    // XXX: We could default this to 0.0 and not bother with the Option, but
+    //  I thought it might be interesting to be able to know when we're starting
+    //  totally from scratch vs rolling over from a previous iteration.
+    secs_since_last_reveal: Option<f32>,
+    // FIXME: when using asset loader, might need a handle instead of local data
+    data: core::Dialogue,
+}
 
 #[derive(Component)]
-struct SpeakerName;
+struct SpeakerNameText;
 
 #[derive(Component)]
-struct Dialogue;
+struct DialogueText;
 
 #[derive(Component)]
 struct GameCamera;
 
-fn playback_system(mut commands: Commands) {
-    commands.insert_resource(NextState(GameState::Prompt));
+// FIXME: body should resemble PlaybackState::fixed_update
+fn playback_system(mut _commands: Commands, mut query: Query<&mut Billboard>) {
+    let mut billboard = query.get_single_mut().expect("billboard data");
+    billboard.head += 1;
+    dbg!(billboard);
+    // commands.insert_resource(NextState(GameState::Prompt));
 }
 
 fn prompt_system(mut _commands: Commands) {
@@ -114,6 +135,10 @@ fn setup_billboard(mut commands: Commands, ass: Res<AssetServer>) {
         font_size: 24.0,
         color: Color::WHITE,
     };
+
+    // FIXME: stubbing dialogue data. Shouls use asset loader!
+    let dialogue_file_path = concat!(env!("CARGO_MANIFEST_DIR"), "/assets/dialogue/choices.toml");
+
     let billboard = commands
         .spawn_bundle(NodeBundle {
             color: UiColor(Color::rgb(0.5, 0.5, 0.5)),
@@ -126,19 +151,28 @@ fn setup_billboard(mut commands: Commands, ass: Res<AssetServer>) {
                 justify_content: JustifyContent::Center,
                 ..default()
             },
-            ..Default::default()
+            ..default()
         })
         .with_children(|parent| {
             parent
                 .spawn_bundle(TextBundle::from_section("speaker name", style.clone()))
-                .insert(SpeakerName);
+                .insert(SpeakerNameText);
+
             parent
                 .spawn_bundle(TextBundle::from_section("dialogue", style.clone()))
-                .insert(Dialogue);
+                .insert(DialogueText);
         })
-        .insert(Billboard)
+        .insert(Billboard {
+            head: 0,
+            passage_group: 0,
+            passage: 0,
+            secs_since_last_reveal: None,
+            data: core::Dialogue::from_path(dialogue_file_path).expect("load dialogue"),
+        })
         .id();
 
     commands.entity(billboard);
     commands.insert_resource(NextState(GameState::Playback));
 }
+
+mod core;

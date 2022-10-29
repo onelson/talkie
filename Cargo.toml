@@ -5,12 +5,14 @@ authors = []
 edition = "2021"
 
 [dependencies]
+anyhow = "1.0.64"
 bevy = { version="0.8.1", features=["dynamic"] }
 leafwing-input-manager = "0.5.2"
 toml = "0.5.6"
 serde = { version = "1.0.114", features = ["derive"] }
 iyes_loopless = "0.7.1"
 rand = "0.8.1"
+tracing = "0.1.36"
 
 #talkie = { path = "talkie" }
 
