@@ -133,6 +133,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "assert_approx_eq"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3c07dab4369547dbe5114677b33fbbf724971019f3818172d59a97a61c774ffd"
+
+[[package]]
 name = "async-channel"
 version = "1.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2885,6 +2891,7 @@ name = "talkie-game"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "assert_approx_eq",
  "bevy",
  "iyes_loopless",
  "leafwing-input-manager",

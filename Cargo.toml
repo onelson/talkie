@@ -16,6 +16,9 @@ tracing = "0.1.36"
 
 #talkie = { path = "talkie" }
 
+[dev-dependencies]
+assert_approx_eq = "1.1.0"
+
 [workspace]
 resolver = "2"
 #members = [
