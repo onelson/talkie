@@ -41,6 +41,8 @@ fn main() {
         )
         // menu setup (state enter) systems
         .add_enter_system(GameState::Loading, setup_billboard)
+        .add_enter_system(GameState::Choice, setup_choices)
+        .add_exit_system(GameState::Choice, teardown_choices)
         .add_system_set(
             ConditionSet::new()
                 .run_in_state(GameState::Playback)
@@ -94,6 +96,17 @@ struct SpeakerNameText;
 #[derive(Component)]
 struct DialogueText;
 
+/// Resource used to build a menu of choices.
+struct Choices(Vec<core::Choice>);
+
+#[derive(Component)]
+struct ChoiceList {
+    selected_choice: usize,
+}
+
+/// Resource used to signal a jump to a given passage group.
+struct Goto(String);
+
 #[derive(Component)]
 struct GameCamera;
 
@@ -119,15 +132,15 @@ fn playback_system(
     let entire_text = group.passages[billboard.passage].as_str();
 
     if billboard.head < entire_text.len() {
-        if let Ok((mut txt, _)) = params.p0().get_single_mut() {
+        {
+            let mut q = params.p0();
+            let (mut txt, _) = q.single_mut();
             txt.sections[0].value = group
                 .speaker
                 .as_ref()
                 .map(|s| s.as_str())
                 .unwrap_or("")
                 .to_string();
-        } else {
-            unreachable!("missing speaker text");
         }
 
         let mut since = billboard.secs_since_last_reveal.unwrap_or_default();
@@ -146,10 +159,10 @@ fn playback_system(
 
         billboard.secs_since_last_reveal = Some(remainder);
         billboard.head += reveal_how_many; // Only advance if we can update the display
-        if let Ok((mut txt, _)) = params.p1().get_single_mut() {
+        {
+            let mut q = params.p1();
+            let (mut txt, _) = q.single_mut();
             txt.sections[0].value = entire_text.chars().take(billboard.head).collect();
-        } else {
-            unreachable!("missing dialogue text");
         }
     } else {
         let last_group = billboard.passage_group == dialogue.passage_groups.len() - 1;
@@ -182,22 +195,59 @@ fn playback_system(
             .as_ref()
             .map(|v| !v.is_empty())
             .unwrap_or(false);
-        if last_passage && has_choices {
-            // FIXME: include `group.choices` in the state so the choice state knows what to render
-            commands.insert_resource(NextState(GameState::Choice));
-        }
 
-        // XXX: prompt state used to accept the name of the action to trigger on
-        commands.insert_resource(NextState(GameState::Prompt));
+        if last_passage && has_choices {
+            commands.insert_resource(Choices(group.choices.clone().expect("choices")));
+            commands.insert_resource(NextState(GameState::Choice));
+            return;
+        } else {
+            // XXX: prompt state used to accept the name of the action to trigger on
+            commands.insert_resource(NextState(GameState::Prompt));
+        }
     }
 }
 
 fn prompt_system(mut _commands: Commands) {
-    // todo!("prompt");
+    // TODO
 }
 
-fn choice_system(mut _commands: Commands) {
-    // todo!("choice");
+fn choice_system(mut _commands: Commands, choices: Res<Choices>) {
+    // TODO
+}
+
+fn setup_choices(mut commands: Commands, choices: Res<Choices>, ass: Res<AssetServer>) {
+    let style = TextStyle {
+        font: ass.load("Sansation-Regular.ttf"),
+        font_size: 18.0,
+        color: Color::BLACK,
+    };
+
+    let menu = commands
+        .spawn_bundle(NodeBundle {
+            color: UiColor(Color::rgb(0.5, 0.55, 0.5)),
+            style: Style {
+                size: Size::new(Val::Percent(100.), Val::Percent(100.)),
+                align_self: AlignSelf::Auto,
+                flex_direction: FlexDirection::ColumnReverse,
+                align_items: AlignItems::FlexStart,
+                ..default()
+            },
+            ..default()
+        })
+        .with_children(|parent| {
+            for choice in &choices.0 {
+                parent.spawn_bundle(TextBundle::from_section(&choice.label, style.clone()));
+            }
+        })
+        .insert(ChoiceList { selected_choice: 0 })
+        .id();
+
+    commands.entity(menu);
+}
+
+// XXX: Might not be needed if we can cleanup in the `choice_system`
+fn teardown_choices(mut commands: Commands) {
+    commands.remove_resource::<Choices>();
 }
 
 /// We can just access the `CurrentState`, and even use change detection!
@@ -214,11 +264,11 @@ fn setup_camera(mut commands: Commands) {
         .insert(GameCamera);
 }
 
+const BILLBOARD_HEIGHT: f32 = 300.0;
+
 /// Construct the main conversation UI
 fn setup_billboard(mut commands: Commands, ass: Res<AssetServer>) {
     // TODO: load sprites
-    // TODO: store dialogue - separate component or entity?
-    // TODO: store speaker name - separate component or entity?
 
     // In amethyst dialogue text and speaker name text were two separate UI
     // entities, handed off when constructing the playback state.
@@ -233,14 +283,13 @@ fn setup_billboard(mut commands: Commands, ass: Res<AssetServer>) {
 
     let billboard = commands
         .spawn_bundle(NodeBundle {
-            color: UiColor(Color::rgb(0.5, 0.5, 0.5)),
+            color: UiColor(Color::rgb(0.4, 0.4, 0.6)),
             style: Style {
-                size: Size::new(Val::Auto, Val::Auto),
-                margin: UiRect::all(Val::Auto),
-                align_self: AlignSelf::Center,
+                size: Size::new(Val::Percent(100.), Val::Percent(100.)),
+                align_self: AlignSelf::Auto,
                 flex_direction: FlexDirection::ColumnReverse,
-                align_items: AlignItems::Stretch,
-                justify_content: JustifyContent::Center,
+                align_items: AlignItems::FlexStart,
+                justify_content: JustifyContent::FlexStart,
                 ..default()
             },
             ..default()
