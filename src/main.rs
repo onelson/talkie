@@ -28,16 +28,13 @@ enum GameState {
 }
 
 fn main() {
-    // stage for anything we want to do on a fixed timestep
-    let fixedupdate = SystemStage::parallel();
-
     App::new()
         .add_plugins(DefaultPlugins)
         .add_loopless_state(GameState::Loading)
-        .add_stage_before(
-            CoreStage::Update,
-            "FixedUpdate",
-            FixedTimestepStage::from_stage(Duration::from_millis(125), fixedupdate),
+        .add_fixed_timestep(
+            Duration::from_millis(125),
+            // give it a label
+            "my_fixed_update",
         )
         // menu setup (state enter) systems
         .add_enter_system(GameState::Loading, setup_billboard)
@@ -97,7 +94,12 @@ struct SpeakerNameText;
 struct DialogueText;
 
 /// Resource used to build a menu of choices.
+#[derive(Resource)]
 struct Choices(Vec<core::Choice>);
+
+/// Resource used to build a menu of choices.
+#[derive(Resource)]
+struct Dialogue(core::Dialogue);
 
 #[derive(Component)]
 struct ChoiceList {
@@ -114,7 +116,7 @@ struct GameCamera;
 fn playback_system(
     mut commands: Commands,
     time: Res<Time>,
-    dialogue: Res<core::Dialogue>,
+    dialogue: Res<Dialogue>,
     mut billboard: Query<&mut BillboardData>,
     mut params: ParamSet<(
         Query<(&mut Text, With<SpeakerNameText>)>,
@@ -125,7 +127,7 @@ fn playback_system(
 
     // TODO: check input to see if fast-forward should be set
 
-    let group = &dialogue.passage_groups[billboard.passage_group];
+    let group = &dialogue.0.passage_groups[billboard.passage_group];
 
     // XXX: text/passages should not end up empty. If they are, it
     // there be a problem with the parser.
@@ -165,7 +167,7 @@ fn playback_system(
             txt.sections[0].value = entire_text.chars().take(billboard.head).collect();
         }
     } else {
-        let last_group = billboard.passage_group == dialogue.passage_groups.len() - 1;
+        let last_group = billboard.passage_group == dialogue.0.passage_groups.len() - 1;
         let last_passage = billboard.passage == group.passages.len() - 1;
 
         // Go back to the very start if we're at the end of the last
@@ -223,8 +225,8 @@ fn setup_choices(mut commands: Commands, choices: Res<Choices>, ass: Res<AssetSe
     };
 
     let menu = commands
-        .spawn_bundle(NodeBundle {
-            color: UiColor(Color::rgb(0.5, 0.55, 0.5)),
+        .spawn(NodeBundle {
+            background_color: BackgroundColor(Color::rgb(0.5, 0.55, 0.5)),
             style: Style {
                 size: Size::new(Val::Percent(100.), Val::Percent(100.)),
                 align_self: AlignSelf::Auto,
@@ -236,7 +238,7 @@ fn setup_choices(mut commands: Commands, choices: Res<Choices>, ass: Res<AssetSe
         })
         .with_children(|parent| {
             for choice in &choices.0 {
-                parent.spawn_bundle(TextBundle::from_section(&choice.label, style.clone()));
+                parent.spawn(TextBundle::from_section(&choice.label, style.clone()));
             }
         })
         .insert(ChoiceList { selected_choice: 0 })
@@ -259,9 +261,7 @@ fn debug_current_state(state: Res<CurrentState<GameState>>) {
 
 /// Spawn the camera
 fn setup_camera(mut commands: Commands) {
-    commands
-        .spawn_bundle(Camera2dBundle::default())
-        .insert(GameCamera);
+    commands.spawn(Camera2dBundle::default()).insert(GameCamera);
 }
 
 const BILLBOARD_HEIGHT: f32 = 300.0;
@@ -282,8 +282,8 @@ fn setup_billboard(mut commands: Commands, ass: Res<AssetServer>) {
     };
 
     let billboard = commands
-        .spawn_bundle(NodeBundle {
-            color: UiColor(Color::rgb(0.4, 0.4, 0.6)),
+        .spawn(NodeBundle {
+            background_color: BackgroundColor(Color::rgb(0.4, 0.4, 0.6)),
             style: Style {
                 size: Size::new(Val::Percent(100.), Val::Percent(100.)),
                 align_self: AlignSelf::Auto,
@@ -296,11 +296,11 @@ fn setup_billboard(mut commands: Commands, ass: Res<AssetServer>) {
         })
         .with_children(|parent| {
             parent
-                .spawn_bundle(TextBundle::from_section("speaker name", style.clone()))
+                .spawn(TextBundle::from_section("speaker name", style.clone()))
                 .insert(SpeakerNameText);
 
             parent
-                .spawn_bundle(TextBundle::from_section("dialogue", style.clone()))
+                .spawn(TextBundle::from_section("dialogue", style.clone()))
                 .insert(DialogueText);
         })
         .insert(BillboardData {
@@ -319,7 +319,9 @@ fn setup_billboard(mut commands: Commands, ass: Res<AssetServer>) {
 
     // FIXME: when using asset loader, might need a handle instead of local data
     let dialogue_file_path = concat!(env!("CARGO_MANIFEST_DIR"), "/assets/dialogue/choices.toml");
-    commands.insert_resource(core::Dialogue::from_path(dialogue_file_path).expect("load dialogue"));
+    commands.insert_resource(Dialogue(
+        core::Dialogue::from_path(dialogue_file_path).expect("load dialogue"),
+    ));
     commands.insert_resource(NextState(GameState::Playback));
 }
 
