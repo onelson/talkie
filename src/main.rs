@@ -55,7 +55,7 @@ fn main() {
         .add_system_set(
             ConditionSet::new()
                 .run_in_state(GameState::Choice)
-                .with_system(choice_system)
+                .with_system(choice_cursor_system)
                 .into(),
         )
         // our other various systems:
@@ -102,8 +102,17 @@ struct Choices(Vec<core::Choice>);
 struct Dialogue(core::Dialogue);
 
 #[derive(Component)]
+struct ChoiceCursor;
+
+#[derive(Component)]
 struct ChoiceList {
     selected_choice: usize,
+    count: usize,
+}
+
+#[derive(Component, Debug)]
+struct Choice {
+    idx: usize,
 }
 
 /// Resource used to signal a jump to a given passage group.
@@ -213,8 +222,21 @@ fn prompt_system(mut _commands: Commands) {
     // TODO
 }
 
-fn choice_system(mut _commands: Commands, choices: Res<Choices>) {
-    // TODO
+const GUTTER_V: f32 = 4.;
+const BTN_HEIGHT: f32 = 28.;
+const BTN_WIDTH: f32 = 100.;
+
+fn choice_cursor_system(
+    mut _commands: Commands,
+    choice_list: Query<&ChoiceList>,
+    mut choice_cursor: Query<&mut Style, With<ChoiceCursor>>,
+) {
+    let choice_list = choice_list.single();
+    let v_offset = choice_list.count - choice_list.selected_choice;
+    let mut cursor_style = choice_cursor.single_mut();
+    cursor_style.position = UiRect::bottom(Val::Px(
+        (v_offset as f32 * (BTN_HEIGHT + GUTTER_V)) - GUTTER_V,
+    ));
 }
 
 fn setup_choices(mut commands: Commands, choices: Res<Choices>, ass: Res<AssetServer>) {
@@ -229,19 +251,42 @@ fn setup_choices(mut commands: Commands, choices: Res<Choices>, ass: Res<AssetSe
             background_color: BackgroundColor(Color::rgb(0.5, 0.55, 0.5)),
             style: Style {
                 size: Size::new(Val::Percent(100.), Val::Percent(100.)),
-                align_self: AlignSelf::Auto,
-                flex_direction: FlexDirection::ColumnReverse,
-                align_items: AlignItems::FlexStart,
+                align_content: AlignContent::FlexEnd,
                 ..default()
             },
             ..default()
         })
         .with_children(|parent| {
-            for choice in &choices.0 {
-                parent.spawn(TextBundle::from_section(&choice.label, style.clone()));
+            parent.spawn((
+                NodeBundle {
+                    style: Style {
+                        size: Size::new(Val::Px(BTN_HEIGHT), Val::Px(BTN_HEIGHT)),
+                        position_type: PositionType::Absolute,
+                        ..default()
+                    },
+                    background_color: Color::rgb(0.9, 0.3, 0.3).into(),
+                    ..default()
+                },
+                ChoiceCursor,
+            ));
+
+            let choice_count = choices.0.len();
+            for (idx, choice) in choices.0.iter().enumerate() {
+                // We need to calculate the offset from the end of the list in order
+                // to get these positioned correctly when pinned to the bottom.
+                let v_offset = choice_count - idx;
+                // FIXME: might need to wrap each in a node to give some padding
+                let mut txt = TextBundle::from_section(&choice.label, style.clone());
+                txt.style.position_type = PositionType::Absolute;
+                txt.style.position =
+                    UiRect::bottom(Val::Px(v_offset as f32 * (BTN_HEIGHT + GUTTER_V)));
+                parent.spawn((txt, Choice { idx }));
             }
         })
-        .insert(ChoiceList { selected_choice: 0 })
+        .insert(ChoiceList {
+            selected_choice: 0,
+            count: choices.0.len(),
+        })
         .id();
 
     commands.entity(menu);
