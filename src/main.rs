@@ -10,6 +10,7 @@
 
 use bevy::prelude::*;
 use iyes_loopless::prelude::*;
+use leafwing_input_manager::prelude::*;
 use std::time::Duration;
 
 /// The default number of glyphs to reveal per second.
@@ -27,9 +28,17 @@ enum GameState {
     Choice,
 }
 
+#[derive(Actionlike, PartialEq, Eq, Clone, Copy, Hash, Debug)]
+enum Action {
+    Confirm,
+    Up,
+    Down,
+}
+
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
+        .add_plugin(InputManagerPlugin::<Action>::default())
         .add_loopless_state(GameState::Loading)
         .add_fixed_timestep(
             Duration::from_millis(125),
@@ -56,6 +65,7 @@ fn main() {
             ConditionSet::new()
                 .run_in_state(GameState::Choice)
                 .with_system(choice_cursor_system)
+                .with_system(handle_choice_input)
                 .into(),
         )
         // our other various systems:
@@ -239,6 +249,30 @@ fn choice_cursor_system(
     ));
 }
 
+fn handle_choice_input(
+    mut _commands: Commands,
+    mut choice_list: Query<&mut ChoiceList>,
+    query: Query<&ActionState<Action>, With<BillboardData>>,
+) {
+    let action_state = query.single();
+    // Need to change the selection
+
+    if action_state.just_pressed(Action::Confirm) {
+        todo!("figure out the GOTO or whatever")
+    }
+
+    let mut choice_list = choice_list.single_mut();
+
+    if action_state.just_pressed(Action::Up) && choice_list.selected_choice > 0 {
+        choice_list.selected_choice -= 1;
+    }
+    if action_state.just_pressed(Action::Down)
+        && choice_list.selected_choice < choice_list.count - 1
+    {
+        choice_list.selected_choice += 1;
+    }
+}
+
 fn setup_choices(mut commands: Commands, choices: Res<Choices>, ass: Res<AssetServer>) {
     let style = TextStyle {
         font: ass.load("Sansation-Regular.ttf"),
@@ -327,18 +361,33 @@ fn setup_billboard(mut commands: Commands, ass: Res<AssetServer>) {
     };
 
     let billboard = commands
-        .spawn(NodeBundle {
-            background_color: BackgroundColor(Color::rgb(0.4, 0.4, 0.6)),
-            style: Style {
-                size: Size::new(Val::Percent(100.), Val::Percent(100.)),
-                align_self: AlignSelf::Auto,
-                flex_direction: FlexDirection::ColumnReverse,
-                align_items: AlignItems::FlexStart,
-                justify_content: JustifyContent::FlexStart,
+        .spawn((
+            NodeBundle {
+                background_color: BackgroundColor(Color::rgb(0.4, 0.4, 0.6)),
+                style: Style {
+                    size: Size::new(Val::Percent(100.), Val::Percent(100.)),
+                    align_self: AlignSelf::Auto,
+                    flex_direction: FlexDirection::ColumnReverse,
+                    align_items: AlignItems::FlexStart,
+                    justify_content: JustifyContent::FlexStart,
+                    ..default()
+                },
                 ..default()
             },
-            ..default()
-        })
+            InputManagerBundle::<Action> {
+                // Stores "which actions are currently pressed"
+                action_state: ActionState::default(),
+                // Describes how to convert from player inputs into those actions
+                input_map: InputMap::new([
+                    (KeyCode::Space, Action::Confirm),
+                    (KeyCode::Return, Action::Confirm),
+                    (KeyCode::Up, Action::Up),
+                    (KeyCode::W, Action::Up),
+                    (KeyCode::Down, Action::Down),
+                    (KeyCode::S, Action::Down),
+                ]),
+            },
+        ))
         .with_children(|parent| {
             parent
                 .spawn(TextBundle::from_section("speaker name", style.clone()))
