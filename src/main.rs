@@ -1,13 +1,3 @@
-//! Complex example showcasing all the features together.
-//!
-//! Shows how our states, fixed timestep, and custom run conditions, can all be used together!
-//!
-//! Also shows how run conditions could be helpful for Bevy UI button handling!
-//!
-//! This example has a main menu with two buttons: exit the app and enter the game.
-//!
-//! How to "play the game": hold spacebar to spawn colorful squares, release spacebar to make them spin! <3
-
 use bevy::prelude::*;
 use iyes_loopless::prelude::*;
 use leafwing_input_manager::prelude::*;
