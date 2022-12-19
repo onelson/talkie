@@ -41,13 +41,13 @@ pub struct Dialogue {
 
 impl Dialogue {
     pub fn from_slice(bytes: &[u8]) -> Result<Dialogue> {
-        let mut dialogue: Dialogue = toml::from_slice(&bytes)?;
+        let mut dialogue: Dialogue = toml::from_slice(bytes)?;
         for passage in dialogue
             .passage_groups
             .iter_mut()
             .flat_map(|x| x.passages.iter_mut())
         {
-            *passage = reflow_text(&passage);
+            *passage = reflow_text(passage);
         }
 
         Ok(dialogue)

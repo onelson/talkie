@@ -39,6 +39,7 @@ fn main() {
         .add_enter_system(GameState::Loading, setup_billboard)
         .add_enter_system(GameState::Choice, setup_choices)
         .add_exit_system(GameState::Choice, teardown_choices)
+        .add_exit_system(GameState::Choice, despawn_with::<ChoiceList>)
         .add_system_set(
             ConditionSet::new()
                 .run_in_state(GameState::Playback)
@@ -87,6 +88,13 @@ struct BillboardData {
     glyphs_per_sec: f32,
 }
 
+/// Despawn all entities with a given component type
+fn despawn_with<T: Component>(mut commands: Commands, q: Query<Entity, With<T>>) {
+    for e in q.iter() {
+        commands.entity(e).despawn_recursive();
+    }
+}
+
 #[derive(Component)]
 struct SpeakerNameText;
 
@@ -95,11 +103,11 @@ struct DialogueText;
 
 /// Resource used to build a menu of choices.
 #[derive(Resource)]
-struct Choices(Vec<core::Choice>);
+struct Choices(Vec<talkie_core::Choice>);
 
 /// Resource used to build a menu of choices.
 #[derive(Resource)]
-struct Dialogue(core::Dialogue);
+struct Dialogue(talkie_core::Dialogue);
 
 #[derive(Component)]
 struct ChoiceCursor;
@@ -107,7 +115,7 @@ struct ChoiceCursor;
 #[derive(Component)]
 struct ChoiceList {
     selected_choice: usize,
-    count: usize,
+    choices: Vec<talkie_core::Choice>,
 }
 
 #[derive(Component, Debug)]
@@ -116,7 +124,8 @@ struct Choice {
 }
 
 /// Resource used to signal a jump to a given passage group.
-struct Goto(String);
+#[derive(Resource)]
+struct Goto(Option<String>);
 
 #[derive(Component)]
 struct GameCamera;
@@ -126,6 +135,7 @@ fn playback_system(
     mut commands: Commands,
     time: Res<Time>,
     dialogue: Res<Dialogue>,
+    mut goto: ResMut<Goto>,
     mut billboard: Query<&mut BillboardData>,
     mut params: ParamSet<(
         Query<(&mut Text, With<SpeakerNameText>)>,
@@ -133,6 +143,21 @@ fn playback_system(
     )>,
 ) {
     let mut billboard = billboard.single_mut();
+
+    // XXX: formerly we'd check for a GOTO here and reset the BillboardData when present.
+    // Might actually be better to do this in a separate state and/or system.
+    // Could be written to reset the playhead, then transition back here.
+    if goto.is_changed() {
+        if let Some(passage_group_id) = goto.0.take() {
+            println!("Got goto={passage_group_id}");
+            billboard.passage_group = dialogue
+                .0
+                .passage_groups
+                .iter()
+                .position(|group| group.id.as_ref() == Some(&passage_group_id))
+                .unwrap();
+        }
+    }
 
     // TODO: check input to see if fast-forward should be set
 
@@ -146,19 +171,14 @@ fn playback_system(
         {
             let mut q = params.p0();
             let (mut txt, _) = q.single_mut();
-            txt.sections[0].value = group
-                .speaker
-                .as_ref()
-                .map(|s| s.as_str())
-                .unwrap_or("")
-                .to_string();
+            txt.sections[0].value = group.speaker.as_deref().unwrap_or("").to_string();
         }
 
         let mut since = billboard.secs_since_last_reveal.unwrap_or_default();
 
         since += time.delta_seconds();
 
-        let (reveal_how_many, remainder) = core::calc_glyphs_to_reveal(
+        let (reveal_how_many, remainder) = talkie_core::calc_glyphs_to_reveal(
             since,
             billboard.glyphs_per_sec
                 * if billboard.fast_forward {
@@ -210,7 +230,6 @@ fn playback_system(
         if last_passage && has_choices {
             commands.insert_resource(Choices(group.choices.clone().expect("choices")));
             commands.insert_resource(NextState(GameState::Choice));
-            return;
         } else {
             // XXX: prompt state used to accept the name of the action to trigger on
             commands.insert_resource(NextState(GameState::Prompt));
@@ -232,7 +251,7 @@ fn choice_cursor_system(
     mut choice_cursor: Query<&mut Style, With<ChoiceCursor>>,
 ) {
     let choice_list = choice_list.single();
-    let v_offset = choice_list.count - choice_list.selected_choice;
+    let v_offset = choice_list.choices.len() - choice_list.selected_choice;
     let mut cursor_style = choice_cursor.single_mut();
     cursor_style.position = UiRect::bottom(Val::Px(
         (v_offset as f32 * (BTN_HEIGHT + GUTTER_V)) - GUTTER_V,
@@ -240,24 +259,28 @@ fn choice_cursor_system(
 }
 
 fn handle_choice_input(
-    mut _commands: Commands,
+    mut commands: Commands,
     mut choice_list: Query<&mut ChoiceList>,
+    mut goto: ResMut<Goto>,
     query: Query<&ActionState<Action>, With<BillboardData>>,
 ) {
     let action_state = query.single();
-    // Need to change the selection
 
     if action_state.just_pressed(Action::Confirm) {
-        todo!("figure out the GOTO or whatever")
+        let choice_list = choice_list.single();
+        goto.0 = choice_list.choices[choice_list.selected_choice]
+            .goto
+            .clone();
+        commands.insert_resource(NextState(GameState::Playback));
+        return;
     }
 
     let mut choice_list = choice_list.single_mut();
-
     if action_state.just_pressed(Action::Up) && choice_list.selected_choice > 0 {
         choice_list.selected_choice -= 1;
     }
     if action_state.just_pressed(Action::Down)
-        && choice_list.selected_choice < choice_list.count - 1
+        && choice_list.selected_choice < choice_list.choices.len() - 1
     {
         choice_list.selected_choice += 1;
     }
@@ -309,7 +332,7 @@ fn setup_choices(mut commands: Commands, choices: Res<Choices>, ass: Res<AssetSe
         })
         .insert(ChoiceList {
             selected_choice: 0,
-            count: choices.0.len(),
+            choices: choices.0.clone(),
         })
         .id();
 
@@ -319,12 +342,13 @@ fn setup_choices(mut commands: Commands, choices: Res<Choices>, ass: Res<AssetSe
 // XXX: Might not be needed if we can cleanup in the `choice_system`
 fn teardown_choices(mut commands: Commands) {
     commands.remove_resource::<Choices>();
+    commands.remove_resource::<Choices>();
 }
 
 /// We can just access the `CurrentState`, and even use change detection!
 fn debug_current_state(state: Res<CurrentState<GameState>>) {
     if state.is_changed() {
-        println!("Detected state change to {:?}!", state);
+        println!("Detected state change to {state:?}!");
     }
 }
 
@@ -404,9 +428,10 @@ fn setup_billboard(mut commands: Commands, ass: Res<AssetServer>) {
     // FIXME: when using asset loader, might need a handle instead of local data
     let dialogue_file_path = concat!(env!("CARGO_MANIFEST_DIR"), "/assets/dialogue/choices.toml");
     commands.insert_resource(Dialogue(
-        core::Dialogue::from_path(dialogue_file_path).expect("load dialogue"),
+        talkie_core::Dialogue::from_path(dialogue_file_path).expect("load dialogue"),
     ));
     commands.insert_resource(NextState(GameState::Playback));
+    commands.insert_resource(Goto(None));
 }
 
-mod core;
+mod talkie_core;
