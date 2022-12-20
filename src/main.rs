@@ -40,6 +40,8 @@ fn main() {
         .add_enter_system(GameState::Choice, setup_choices)
         .add_exit_system(GameState::Choice, teardown_choices)
         .add_exit_system(GameState::Choice, despawn_with::<ChoiceList>)
+        .add_enter_system(GameState::Prompt, setup_prompt)
+        .add_exit_system(GameState::Prompt, despawn_with::<PromptCursor>)
         .add_system_set(
             ConditionSet::new()
                 .run_in_state(GameState::Playback)
@@ -111,6 +113,9 @@ struct Dialogue(talkie_core::Dialogue);
 
 #[derive(Component)]
 struct ChoiceCursor;
+
+#[derive(Component)]
+struct PromptCursor;
 
 #[derive(Component)]
 struct ChoiceList {
@@ -237,8 +242,11 @@ fn playback_system(
     }
 }
 
-fn prompt_system(mut _commands: Commands) {
-    // TODO
+fn prompt_system(mut commands: Commands, query: Query<&ActionState<Action>, With<BillboardData>>) {
+    let action_state = query.single();
+    if action_state.pressed(Action::Confirm) {
+        commands.insert_resource(NextState(GameState::Playback));
+    }
 }
 
 const GUTTER_V: f32 = 4.;
@@ -284,6 +292,25 @@ fn handle_choice_input(
     {
         choice_list.selected_choice += 1;
     }
+}
+
+fn setup_prompt(mut commands: Commands, _ass: Res<AssetServer>) {
+    let cursor = commands
+        .spawn((
+            NodeBundle {
+                style: Style {
+                    size: Size::new(Val::Px(BTN_HEIGHT), Val::Px(BTN_HEIGHT)),
+                    position_type: PositionType::Absolute,
+                    position: UiRect::new(Val::Auto, Val::Px(0.), Val::Auto, Val::Px(0.)),
+                    ..default()
+                },
+                background_color: Color::rgb(0.9, 0.3, 0.3).into(),
+                ..default()
+            },
+            PromptCursor,
+        ))
+        .id();
+    commands.entity(cursor);
 }
 
 fn setup_choices(mut commands: Commands, choices: Res<Choices>, ass: Res<AssetServer>) {
