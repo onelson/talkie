@@ -6,8 +6,8 @@ use std::time::Duration;
 /// The default number of glyphs to reveal per second.
 ///
 /// This value is used as a fallback for when the `TALKIE_SPEED` env var is
-const DEFAULT_GLYPHS_PER_SEC: f32 = 18.0;
-const TALKIE_SPEED_FACTOR: f32 = 30.0;
+const DEFAULT_GLYPHS_PER_SEC: f32 = 14.0;
+const TALKIE_SPEED_FACTOR: f32 = 10.0;
 
 /// Our Application State
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -135,12 +135,12 @@ struct Goto(Option<String>);
 #[derive(Component)]
 struct GameCamera;
 
-// FIXME: body should resemble PlaybackState::fixed_update
 fn playback_system(
     mut commands: Commands,
     time: Res<Time>,
     dialogue: Res<Dialogue>,
     mut goto: ResMut<Goto>,
+    action_state: Query<&ActionState<Action>>,
     mut billboard: Query<&mut BillboardData>,
     mut params: ParamSet<(
         Query<(&mut Text, With<SpeakerNameText>)>,
@@ -164,7 +164,7 @@ fn playback_system(
         }
     }
 
-    // TODO: check input to see if fast-forward should be set
+    billboard.fast_forward = action_state.single().pressed(Action::Confirm);
 
     let group = &dialogue.0.passage_groups[billboard.passage_group];
 
@@ -244,7 +244,7 @@ fn playback_system(
 
 fn prompt_system(mut commands: Commands, query: Query<&ActionState<Action>, With<BillboardData>>) {
     let action_state = query.single();
-    if action_state.pressed(Action::Confirm) {
+    if action_state.just_pressed(Action::Confirm) {
         commands.insert_resource(NextState(GameState::Playback));
     }
 }
