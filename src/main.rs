@@ -342,7 +342,6 @@ fn setup_choices(mut commands: Commands, choices: Res<Choices>, ass: Res<AssetSe
 // XXX: Might not be needed if we can cleanup in the `choice_system`
 fn teardown_choices(mut commands: Commands) {
     commands.remove_resource::<Choices>();
-    commands.remove_resource::<Choices>();
 }
 
 /// We can just access the `CurrentState`, and even use change detection!
