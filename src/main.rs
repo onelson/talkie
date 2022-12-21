@@ -315,7 +315,7 @@ fn setup_prompt(mut commands: Commands, _ass: Res<AssetServer>) {
 
 fn setup_choices(mut commands: Commands, choices: Res<Choices>, ass: Res<AssetServer>) {
     let style = TextStyle {
-        font: ass.load("Sansation-Regular.ttf"),
+        font: ass.load("CC Accidenz Commons-medium.ttf"),
         font_size: 18.0,
         color: Color::BLACK,
     };

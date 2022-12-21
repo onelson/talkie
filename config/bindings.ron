@@ -1,8 +1,0 @@
-(
-  axes: {},
-  actions: {
-    "confirm": [[Key(Space)], [Key(Return)], [Mouse(Left)]],
-    "up": [[Key(Up)], [Key(W)]],
-    "down": [[Key(Down)], [Key(S)]],
-  },
-)
