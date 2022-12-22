@@ -123,6 +123,7 @@ struct Choice;
 #[derive(Resource)]
 struct Goto(Option<String>);
 
+#[allow(clippy::type_complexity)]
 fn playback_system(
     mut commands: Commands,
     time: Res<Time>,
@@ -239,7 +240,6 @@ fn prompt_system(mut commands: Commands, query: Query<&ActionState<Action>, With
 
 const GUTTER_V: f32 = 4.;
 const BTN_HEIGHT: f32 = 28.;
-const BTN_WIDTH: f32 = 100.;
 
 fn choice_cursor_system(
     mut _commands: Commands,
@@ -365,8 +365,6 @@ fn debug_current_state(state: Res<CurrentState<GameState>>) {
         println!("Detected state change to {state:?}!");
     }
 }
-
-const BILLBOARD_HEIGHT: f32 = 300.0;
 
 /// Construct the main conversation UI
 fn setup_billboard(mut commands: Commands, ass: Res<AssetServer>) {
