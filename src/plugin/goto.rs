@@ -1,4 +1,4 @@
-use crate::plugin::billboard::BillboardData;
+use crate::plugin::billboard::Bookmark;
 use crate::plugin::{Dialogue, GameState};
 use bevy::prelude::*;
 use iyes_loopless::prelude::*;
@@ -19,13 +19,13 @@ impl Plugin for GotoPlugin {
 fn goto_system(
     mut commands: Commands,
     mut goto: ResMut<Goto>,
-    mut billboard: Query<&mut BillboardData>,
+    mut bookmark: Query<&mut Bookmark>,
     dialogue: Res<Dialogue>,
 ) {
-    let mut billboard = billboard.single_mut();
     if let Some(passage_group_id) = goto.0.take() {
+        let mut bookmark = bookmark.single_mut();
         println!("Got goto={passage_group_id}");
-        billboard.passage_group = dialogue
+        bookmark.passage_group = dialogue
             .0
             .passage_groups
             .iter()
@@ -34,10 +34,9 @@ fn goto_system(
     } else {
         println!("Got goto=Next");
     }
-    billboard.secs_since_last_reveal = None;
     commands.insert_resource(NextState(GameState::Playback));
 }
 
 /// Resource used to signal a jump to a given passage group.
 #[derive(Resource)]
-pub struct Goto(Option<String>);
+pub struct Goto(pub Option<String>);

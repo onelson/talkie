@@ -1,4 +1,4 @@
-use crate::plugin::billboard::BillboardData;
+use crate::plugin::billboard::PlayHead;
 use crate::plugin::goto::Goto;
 use crate::plugin::{despawn_with, Action, GameState, BTN_HEIGHT, GUTTER_V};
 use bevy::prelude::*;
@@ -39,7 +39,7 @@ fn handle_choice_input(
     mut commands: Commands,
     mut choice_list: Query<&mut ChoiceList>,
     mut goto: ResMut<Goto>,
-    query: Query<&ActionState<Action>, With<BillboardData>>,
+    query: Query<&ActionState<Action>, With<PlayHead>>,
 ) {
     let action_state = query.single();
 

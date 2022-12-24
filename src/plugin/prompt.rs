@@ -1,4 +1,4 @@
-use crate::plugin::billboard::BillboardData;
+use crate::plugin::billboard::PlayHead;
 use crate::plugin::{despawn_with, Action, GameState, BTN_HEIGHT};
 use bevy::prelude::*;
 use iyes_loopless::prelude::*;
@@ -21,13 +21,10 @@ impl Plugin for PromptPlugin {
 
 fn prompt_system(
     mut commands: Commands,
-    action_state: Query<&ActionState<Action>, With<BillboardData>>,
-    mut billboard: Query<&mut BillboardData>,
+    action_state: Query<&ActionState<Action>, With<PlayHead>>,
 ) {
     let action_state = action_state.single();
     if action_state.just_pressed(Action::Confirm) {
-        let mut billboard = billboard.single_mut();
-        billboard.secs_since_last_reveal = None;
         commands.insert_resource(NextState(GameState::Playback));
     }
 }

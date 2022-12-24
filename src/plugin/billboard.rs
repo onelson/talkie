@@ -13,13 +13,17 @@ impl Plugin for BillboardPlugin {
 }
 
 #[derive(Component, Debug, Default)]
-pub struct BillboardData {
-    /// Tracks the current length of *displayed text*.
-    pub head: usize,
+pub struct Bookmark {
     /// tracks which passage group we're iterating through.
     pub passage_group: usize,
     /// tracks which passage we're showing.
     pub passage: usize,
+}
+
+#[derive(Component, Debug, Default)]
+pub struct PlayHead {
+    /// Tracks the current length of *displayed text*.
+    pub head: usize,
     /// Tracks the time since the last glyph was revealed.
     // XXX: We could default this to 0.0 and not bother with the Option, but
     //  I thought it might be interesting to be able to know when we're starting
@@ -90,16 +94,17 @@ fn setup_billboard(mut commands: Commands, ass: Res<AssetServer>) {
                 .spawn(TextBundle::from_section("dialogue", style.clone()))
                 .insert(DialogueText);
         })
-        .insert(BillboardData {
-            head: 0,
-            passage_group: 0,
-            passage: 0,
-            secs_since_last_reveal: None,
-            fast_forward: false,
-            glyphs_per_sec: std::env::var("TALKIE_SPEED")
-                .map(|s| s.parse().expect("invalid speed."))
-                .unwrap_or(DEFAULT_GLYPHS_PER_SEC),
-        })
+        .insert((
+            PlayHead {
+                head: 0,
+                secs_since_last_reveal: None,
+                fast_forward: false,
+                glyphs_per_sec: std::env::var("TALKIE_SPEED")
+                    .map(|s| s.parse().expect("invalid speed."))
+                    .unwrap_or(DEFAULT_GLYPHS_PER_SEC),
+            },
+            Bookmark::default(),
+        ))
         .id();
 
     commands.entity(billboard);
