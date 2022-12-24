@@ -19,9 +19,15 @@ impl Plugin for PromptPlugin {
     }
 }
 
-fn prompt_system(mut commands: Commands, query: Query<&ActionState<Action>, With<BillboardData>>) {
-    let action_state = query.single();
+fn prompt_system(
+    mut commands: Commands,
+    action_state: Query<&ActionState<Action>, With<BillboardData>>,
+    mut billboard: Query<&mut BillboardData>,
+) {
+    let action_state = action_state.single();
     if action_state.just_pressed(Action::Confirm) {
+        let mut billboard = billboard.single_mut();
+        billboard.secs_since_last_reveal = None;
         commands.insert_resource(NextState(GameState::Playback));
     }
 }

@@ -1,6 +1,6 @@
 use crate::plugin::billboard::{BillboardData, DialogueText, SpeakerNameText};
 use crate::plugin::choice::Choices;
-use crate::plugin::{Action, Dialogue, GameState, Goto, TALKIE_SPEED_FACTOR};
+use crate::plugin::{Action, Dialogue, GameState, TALKIE_SPEED_FACTOR};
 use bevy::prelude::*;
 use iyes_loopless::prelude::*;
 use leafwing_input_manager::action_state::ActionState;
@@ -23,8 +23,7 @@ fn playback_system(
     mut commands: Commands,
     time: Res<Time>,
     dialogue: Res<Dialogue>,
-    mut goto: ResMut<Goto>,
-    action_state: Query<&ActionState<Action>>,
+    action_state: Query<&ActionState<Action>, With<BillboardData>>,
     mut billboard: Query<&mut BillboardData>,
     mut params: ParamSet<(
         Query<(&mut Text, With<SpeakerNameText>)>,
@@ -32,21 +31,6 @@ fn playback_system(
     )>,
 ) {
     let mut billboard = billboard.single_mut();
-
-    // XXX: formerly we'd check for a GOTO here and reset the BillboardData when present.
-    // Might actually be better to do this in a separate state and/or system.
-    // Could be written to reset the playhead, then transition back here.
-    if goto.is_changed() {
-        if let Some(passage_group_id) = goto.0.take() {
-            println!("Got goto={passage_group_id}");
-            billboard.passage_group = dialogue
-                .0
-                .passage_groups
-                .iter()
-                .position(|group| group.id.as_ref() == Some(&passage_group_id))
-                .unwrap();
-        }
-    }
 
     billboard.fast_forward = action_state.single().pressed(Action::Confirm);
 

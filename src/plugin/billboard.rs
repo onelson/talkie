@@ -1,4 +1,5 @@
-use crate::plugin::{Action, Dialogue, GameState, Goto, DEFAULT_GLYPHS_PER_SEC};
+use crate::plugin::goto::Goto;
+use crate::plugin::{Action, Dialogue, GameState, DEFAULT_GLYPHS_PER_SEC};
 use bevy::prelude::*;
 use iyes_loopless::prelude::*;
 use leafwing_input_manager::prelude::*;
@@ -11,9 +12,6 @@ impl Plugin for BillboardPlugin {
     }
 }
 
-// XXX: most fields were lifted from `states::BillboardData`.
-// The amethyst version held a handle to an asset for the dialogue data.
-// This should probably be true here as well, but inlining the data to start.
 #[derive(Component, Debug, Default)]
 pub struct BillboardData {
     /// Tracks the current length of *displayed text*.
@@ -26,10 +24,11 @@ pub struct BillboardData {
     // XXX: We could default this to 0.0 and not bother with the Option, but
     //  I thought it might be interesting to be able to know when we're starting
     //  totally from scratch vs rolling over from a previous iteration.
+    // FIXME: resetting this currently happens in a couple places.
+    //   If we isolate the passage_group and passage fields on their own component we could watch
+    //   it for changes in the playback system and reset this field at that point.
     pub secs_since_last_reveal: Option<f32>,
-    // FIXME: used to be a field on PlaybackState, but the states themselves are now represented as enums...
     pub fast_forward: bool,
-    // FIXME: used to be a field on PlaybackState, but the states themselves are now represented as enums...
     pub glyphs_per_sec: f32,
 }
 

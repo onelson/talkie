@@ -1,5 +1,6 @@
 use crate::plugin::billboard::BillboardData;
-use crate::plugin::{despawn_with, Action, GameState, Goto, BTN_HEIGHT, GUTTER_V};
+use crate::plugin::goto::Goto;
+use crate::plugin::{despawn_with, Action, GameState, BTN_HEIGHT, GUTTER_V};
 use bevy::prelude::*;
 use iyes_loopless::prelude::*;
 use leafwing_input_manager::action_state::ActionState;
@@ -47,7 +48,7 @@ fn handle_choice_input(
         goto.0 = choice_list.choices[choice_list.selected_choice]
             .goto
             .clone();
-        commands.insert_resource(NextState(GameState::Playback));
+        commands.insert_resource(NextState(GameState::Goto));
         return;
     }
 

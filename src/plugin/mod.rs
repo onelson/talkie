@@ -4,6 +4,7 @@ use leafwing_input_manager::prelude::*;
 
 mod billboard;
 mod choice;
+mod goto;
 mod playback;
 mod prompt;
 
@@ -15,6 +16,7 @@ impl Plugin for TalkiePlugin {
             .add_loopless_state(GameState::Loading)
             .add_plugin(billboard::BillboardPlugin)
             .add_plugin(choice::ChoicePlugin)
+            .add_plugin(goto::GotoPlugin)
             .add_plugin(prompt::PromptPlugin)
             .add_plugin(playback::PlaybackPlugin)
             .add_system(debug_current_state);
@@ -31,9 +33,10 @@ const TALKIE_SPEED_FACTOR: f32 = 10.0;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 enum GameState {
     Loading,
+    Choice,
+    Goto,
     Playback,
     Prompt,
-    Choice,
 }
 
 #[derive(Actionlike, PartialEq, Eq, Clone, Copy, Hash, Debug)]
@@ -53,10 +56,6 @@ fn despawn_with<T: Component>(mut commands: Commands, q: Query<Entity, With<T>>)
 /// Resource used to build a menu of choices.
 #[derive(Resource)]
 struct Dialogue(crate::talkie_core::Dialogue);
-
-/// Resource used to signal a jump to a given passage group.
-#[derive(Resource)]
-pub struct Goto(Option<String>);
 
 const GUTTER_V: f32 = 4.;
 const BTN_HEIGHT: f32 = 28.;
