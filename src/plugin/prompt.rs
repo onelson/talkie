@@ -1,5 +1,6 @@
 use crate::plugin::billboard::PlayHead;
-use crate::plugin::{despawn_with, Action, GameState, BTN_HEIGHT};
+use crate::plugin::choice::BTN_HEIGHT;
+use crate::plugin::{despawn_with, Action, GameState};
 use bevy::prelude::*;
 use iyes_loopless::prelude::*;
 use leafwing_input_manager::action_state::ActionState;
@@ -36,7 +37,7 @@ fn setup_prompt(mut commands: Commands, _ass: Res<AssetServer>) {
                 style: Style {
                     size: Size::new(Val::Px(BTN_HEIGHT), Val::Px(BTN_HEIGHT)),
                     position_type: PositionType::Absolute,
-                    position: UiRect::new(Val::Auto, Val::Px(0.), Val::Auto, Val::Px(0.)),
+                    position: UiRect::new(Val::Auto, Val::Px(14.), Val::Auto, Val::Px(14.)),
                     ..default()
                 },
                 background_color: Color::rgb(0.9, 0.3, 0.3).into(),

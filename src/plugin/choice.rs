@@ -1,6 +1,6 @@
 use crate::plugin::billboard::PlayHead;
 use crate::plugin::goto::Goto;
-use crate::plugin::{despawn_with, Action, GameState, BTN_HEIGHT, GUTTER_V};
+use crate::plugin::{despawn_with, Action, GameState};
 use bevy::prelude::*;
 use iyes_loopless::prelude::*;
 use leafwing_input_manager::action_state::ActionState;
@@ -65,17 +65,18 @@ fn handle_choice_input(
 
 fn setup_choices(mut commands: Commands, choices: Res<Choices>, ass: Res<AssetServer>) {
     let style = TextStyle {
-        font: ass.load("CC Accidenz Commons-medium.ttf"),
-        font_size: 18.0,
-        color: Color::BLACK,
+        font: ass.load("Sansation-Regular.ttf"),
+        font_size: 20.0,
+        color: Color::WHITE,
     };
 
     let menu = commands
         .spawn(NodeBundle {
-            background_color: BackgroundColor(Color::rgb(0.5, 0.55, 0.5)),
             style: Style {
                 size: Size::new(Val::Percent(100.), Val::Percent(100.)),
-                align_content: AlignContent::FlexEnd,
+                position: UiRect::new(Val::Px(20.0), Val::Px(20.0), Val::Auto, Val::Px(20.0)),
+                position_type: PositionType::Absolute,
+                padding: UiRect::all(Val::Px(20.0)),
                 ..default()
             },
             ..default()
@@ -136,3 +137,7 @@ struct ChoiceList {
 
 #[derive(Component, Debug)]
 struct Choice;
+
+pub const BTN_HEIGHT: f32 = 28.;
+
+const GUTTER_V: f32 = 4.;

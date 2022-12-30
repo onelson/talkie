@@ -57,9 +57,6 @@ fn despawn_with<T: Component>(mut commands: Commands, q: Query<Entity, With<T>>)
 #[derive(Resource)]
 struct Dialogue(crate::talkie_core::Dialogue);
 
-const GUTTER_V: f32 = 4.;
-const BTN_HEIGHT: f32 = 28.;
-
 /// We can just access the `CurrentState`, and even use change detection!
 fn debug_current_state(state: Res<CurrentState<GameState>>) {
     if state.is_changed() {

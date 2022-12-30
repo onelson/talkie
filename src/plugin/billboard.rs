@@ -1,3 +1,7 @@
+//! Ah. Well. At this point the "billboard" jargon is losing traction.
+//! Still, the general idea was a billboard is the top-level or entrypoint for
+//! the whole dialogue presentation.
+
 use crate::plugin::goto::Goto;
 use crate::plugin::{Action, Dialogue, GameState, DEFAULT_GLYPHS_PER_SEC};
 use bevy::prelude::*;
@@ -37,10 +41,21 @@ pub struct PlayHead {
 }
 
 #[derive(Component)]
+pub struct SpeakerNameTab;
+
+#[derive(Component)]
 pub struct SpeakerNameText;
 
 #[derive(Component)]
 pub struct DialogueText;
+
+#[derive(Component)]
+pub struct Billboard;
+
+#[derive(Component)]
+pub struct Root;
+
+const BILLBOARD_HEIGHT: Val = Val::Px(300.0);
 
 /// Construct the main conversation UI
 fn setup_billboard(mut commands: Commands, ass: Res<AssetServer>) {
@@ -53,20 +68,16 @@ fn setup_billboard(mut commands: Commands, ass: Res<AssetServer>) {
 
     let style = TextStyle {
         font: ass.load("Sansation-Regular.ttf"),
-        font_size: 24.0,
+        font_size: 20.0,
         color: Color::WHITE,
     };
 
-    let billboard = commands
+    commands
         .spawn((
             NodeBundle {
-                background_color: BackgroundColor(Color::rgb(0.4, 0.4, 0.6)),
                 style: Style {
-                    size: Size::new(Val::Percent(100.), Val::Percent(100.)),
-                    align_self: AlignSelf::Auto,
+                    size: Size::new(Val::Percent(100.0), Val::Percent(100.0)),
                     flex_direction: FlexDirection::ColumnReverse,
-                    align_items: AlignItems::FlexStart,
-                    justify_content: JustifyContent::FlexStart,
                     ..default()
                 },
                 ..default()
@@ -86,13 +97,48 @@ fn setup_billboard(mut commands: Commands, ass: Res<AssetServer>) {
             },
         ))
         .with_children(|parent| {
+            let billboard_color = Color::rgb(0.4, 0.4, 0.6);
             parent
-                .spawn(TextBundle::from_section("speaker name", style.clone()))
-                .insert(SpeakerNameText);
+                .spawn(NodeBundle {
+                    background_color: BackgroundColor(billboard_color),
+                    style: Style {
+                        position: UiRect::new(Val::Px(0.0), Val::Px(0.0), Val::Auto, Val::Px(0.0)),
+                        padding: UiRect::all(Val::Px(20.0)),
+                        margin: UiRect::all(Val::Px(20.0)),
+                        size: Size::new(Val::Auto, BILLBOARD_HEIGHT),
+                        ..default()
+                    },
+                    ..default()
+                })
+                .insert(Root)
+                .with_children(|parent| {
+                    let name_tab = NodeBundle {
+                        // N.b. systems should manage the visibility per passage
+                        visibility: Visibility::INVISIBLE,
+                        background_color: BackgroundColor(billboard_color),
+                        style: Style {
+                            position_type: PositionType::Absolute,
+                            position: UiRect::bottom(BILLBOARD_HEIGHT),
+                            padding: UiRect::all(Val::Px(14.0)),
+                            border: UiRect::all(Val::Px(4.0)),
+                            ..default()
+                        },
+                        ..default()
+                    };
 
-            parent
-                .spawn(TextBundle::from_section("dialogue", style.clone()))
-                .insert(DialogueText);
+                    parent
+                        .spawn(name_tab)
+                        .with_children(|parent| {
+                            parent
+                                .spawn(TextBundle::from_section("speaker name", style.clone()))
+                                .insert(SpeakerNameText);
+                        })
+                        .insert(SpeakerNameTab);
+
+                    let mut text = TextBundle::from_section("dialogue", style.clone());
+                    text.style.position_type = PositionType::Absolute;
+                    parent.spawn(text).insert(DialogueText);
+                });
         })
         .insert((
             PlayHead {
@@ -104,13 +150,16 @@ fn setup_billboard(mut commands: Commands, ass: Res<AssetServer>) {
                     .unwrap_or(DEFAULT_GLYPHS_PER_SEC),
             },
             Bookmark::default(),
-        ))
-        .id();
+            Billboard,
+        ));
 
-    commands.entity(billboard);
+    // commands.entity(billboard);
 
     // FIXME: when using asset loader, might need a handle instead of local data
-    let dialogue_file_path = concat!(env!("CARGO_MANIFEST_DIR"), "/assets/dialogue/choices.toml");
+    let dialogue_file_path = concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/assets/dialogue/mgs3-body-snatchers.toml"
+    );
     commands.insert_resource(Dialogue(
         crate::talkie_core::Dialogue::from_path(dialogue_file_path).expect("load dialogue"),
     ));

@@ -1,4 +1,4 @@
-use crate::plugin::billboard::{Bookmark, DialogueText, PlayHead, SpeakerNameText};
+use crate::plugin::billboard::{Bookmark, DialogueText, PlayHead, SpeakerNameTab, SpeakerNameText};
 use crate::plugin::choice::Choices;
 use crate::plugin::{Action, Dialogue, GameState, TALKIE_SPEED_FACTOR};
 use bevy::prelude::*;
@@ -43,25 +43,31 @@ fn playback_system(
     dialogue: Res<Dialogue>,
     mut billboard: Query<(&mut PlayHead, &mut Bookmark)>,
     mut display: ParamSet<(
+        Query<(&mut Visibility, With<SpeakerNameTab>)>,
         Query<(&mut Text, With<SpeakerNameText>)>,
         Query<(&mut Text, With<DialogueText>)>,
     )>,
 ) {
     let (mut playhead, mut bookmark) = billboard.single_mut();
     let group = &dialogue.0.passage_groups[bookmark.passage_group];
-    // XXX: text/passages should not end up empty. If they are, it
-    // there be a problem with the parser.
     let entire_text = group.passages[bookmark.passage].as_str();
 
     if playhead.head < entire_text.len() {
         {
-            let mut q = display.p0();
-            let (mut txt, _) = q.single_mut();
-            txt.sections[0].value = group.speaker.as_deref().unwrap_or("").to_string();
+            // TODO: refactor so we only do this when the passage group is changing
+            //  Speaker names are by passage group so doing this every tick is needless.
+            let speaker_name = group.speaker.as_deref().unwrap_or("");
+            {
+                let mut t = display.p1();
+                let (mut txt, _) = t.single_mut();
+                txt.sections[0].value = speaker_name.to_string();
+            }
+            let mut v = display.p0();
+            let (mut vis, _) = v.single_mut();
+            vis.is_visible = !speaker_name.trim().is_empty();
         }
 
         let mut since = playhead.secs_since_last_reveal.unwrap_or_default();
-
         since += time.delta_seconds();
 
         let (reveal_how_many, remainder) = crate::talkie_core::calc_glyphs_to_reveal(
@@ -77,7 +83,7 @@ fn playback_system(
         playhead.secs_since_last_reveal = Some(remainder);
         playhead.head += reveal_how_many; // Only advance if we can update the display
         {
-            let mut q = display.p1();
+            let mut q = display.p2();
             let (mut txt, _) = q.single_mut();
             txt.sections[0].value = entire_text.chars().take(playhead.head).collect();
         }
