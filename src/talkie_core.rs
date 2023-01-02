@@ -1,13 +1,8 @@
 // A lot of this was copied from `talkie/assets/mod.rs` but leaves behind all
 // the amethyst-specific asset-loader support.
-// TODO: try to isolate the talkie core from the engine binding code this time
 
 use anyhow::Result;
 use serde::Deserialize;
-use std::fs::File;
-use std::io::Read;
-use std::path::Path;
-use tracing::{event, Level};
 
 /// Sections that include one or more choices will present a menu to the player
 /// once all the passage text has been shown. The last passage will be displayed
@@ -51,18 +46,6 @@ impl Dialogue {
         }
 
         Ok(dialogue)
-    }
-
-    pub fn from_path<P: AsRef<Path>>(path: P) -> Result<Dialogue> {
-        event!(
-            Level::DEBUG,
-            "Opening dialogue from path: {}",
-            path.as_ref().display()
-        );
-        let mut fh = File::open(path)?;
-        let mut buf = vec![];
-        fh.read_to_end(&mut buf)?;
-        Self::from_slice(&buf)
     }
 }
 

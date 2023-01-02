@@ -1,4 +1,6 @@
-use crate::plugin::billboard::{Bookmark, DialogueText, PlayHead, SpeakerNameTab, SpeakerNameText};
+use crate::plugin::billboard::{
+    Billboard, Bookmark, DialogueText, PlayHead, SpeakerNameTab, SpeakerNameText,
+};
 use crate::plugin::choice::Choices;
 use crate::plugin::{Action, Dialogue, GameState, TALKIE_SPEED_FACTOR};
 use bevy::prelude::*;
@@ -40,15 +42,18 @@ fn reveal_timer_reset(mut query: Query<&mut PlayHead, Changed<Bookmark>>) {
 fn playback_system(
     mut commands: Commands,
     time: Res<Time>,
-    dialogue: Res<Dialogue>,
-    mut billboard: Query<(&mut PlayHead, &mut Bookmark)>,
+    dialogue: Res<Assets<Dialogue>>,
+    billboard: Query<&Billboard>,
+    mut playback: Query<(&mut PlayHead, &mut Bookmark)>,
     mut display: ParamSet<(
         Query<(&mut Visibility, With<SpeakerNameTab>)>,
         Query<(&mut Text, With<SpeakerNameText>)>,
         Query<(&mut Text, With<DialogueText>)>,
     )>,
 ) {
-    let (mut playhead, mut bookmark) = billboard.single_mut();
+    let billboard = billboard.single();
+    let dialogue = dialogue.get(&billboard.dialogue).expect("dialogue");
+    let (mut playhead, mut bookmark) = playback.single_mut();
     let group = &dialogue.0.passage_groups[bookmark.passage_group];
     let entire_text = group.passages[bookmark.passage].as_str();
 

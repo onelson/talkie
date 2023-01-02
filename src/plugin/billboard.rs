@@ -12,7 +12,13 @@ pub struct BillboardPlugin;
 
 impl Plugin for BillboardPlugin {
     fn build(&self, app: &mut App) {
-        app.add_enter_system(GameState::Loading, setup_billboard);
+        app.add_enter_system(GameState::Loading, setup_billboard)
+            .add_system_set(
+                ConditionSet::new()
+                    .run_in_state(GameState::Loading)
+                    .with_system(wait_for_assets)
+                    .into(),
+            );
     }
 }
 
@@ -50,15 +56,28 @@ pub struct SpeakerNameText;
 pub struct DialogueText;
 
 #[derive(Component)]
-pub struct Billboard;
+pub struct Billboard {
+    pub dialogue: Handle<Dialogue>,
+}
 
 #[derive(Component)]
 pub struct Root;
 
 const BILLBOARD_HEIGHT: Val = Val::Px(300.0);
 
+fn wait_for_assets(mut commands: Commands, ass: Res<Assets<Dialogue>>, query: Query<&Billboard>) {
+    if let Ok(b) = query.get_single() {
+        if ass.get(&b.dialogue).is_some() {
+            commands.insert_resource(NextState(GameState::Playback));
+            commands.insert_resource(Goto(None));
+        }
+    }
+}
+
 /// Construct the main conversation UI
 fn setup_billboard(mut commands: Commands, ass: Res<AssetServer>) {
+    let dialogue = ass.load("dialogue/mgs3-body-snatchers.toml");
+
     // TODO: load sprites
 
     // In amethyst dialogue text and speaker name text were two separate UI
@@ -150,19 +169,6 @@ fn setup_billboard(mut commands: Commands, ass: Res<AssetServer>) {
                     .unwrap_or(DEFAULT_GLYPHS_PER_SEC),
             },
             Bookmark::default(),
-            Billboard,
+            Billboard { dialogue },
         ));
-
-    // commands.entity(billboard);
-
-    // FIXME: when using asset loader, might need a handle instead of local data
-    let dialogue_file_path = concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/assets/dialogue/mgs3-body-snatchers.toml"
-    );
-    commands.insert_resource(Dialogue(
-        crate::talkie_core::Dialogue::from_path(dialogue_file_path).expect("load dialogue"),
-    ));
-    commands.insert_resource(NextState(GameState::Playback));
-    commands.insert_resource(Goto(None));
 }

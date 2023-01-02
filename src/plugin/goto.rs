@@ -1,4 +1,4 @@
-use crate::plugin::billboard::Bookmark;
+use crate::plugin::billboard::{Billboard, Bookmark};
 use crate::plugin::{Dialogue, GameState};
 use bevy::prelude::*;
 use iyes_loopless::prelude::*;
@@ -20,11 +20,16 @@ fn goto_system(
     mut commands: Commands,
     mut goto: ResMut<Goto>,
     mut bookmark: Query<&mut Bookmark>,
-    dialogue: Res<Dialogue>,
+    billboard: Query<&Billboard>,
+    dialogue: Res<Assets<Dialogue>>,
 ) {
     if let Some(passage_group_id) = goto.0.take() {
         let mut bookmark = bookmark.single_mut();
         println!("Got goto={passage_group_id}");
+
+        let billboard = billboard.single();
+        let dialogue = dialogue.get(&billboard.dialogue).expect("dialogue");
+
         bookmark.passage_group = dialogue
             .0
             .passage_groups
