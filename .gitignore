@@ -1,5 +1,6 @@
 # Unwanted files
 target
+/dist
 
 # Backup files
 .DS_Store

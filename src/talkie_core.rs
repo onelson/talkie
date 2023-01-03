@@ -1,8 +1,7 @@
-use amethyst::{
-    assets::{Asset, Format, Handle},
-    ecs::HashMapStorage,
-    error::Error,
-};
+// A lot of this was copied from `talkie/assets/mod.rs` but leaves behind all
+// the amethyst-specific asset-loader support.
+
+use anyhow::Result;
 use serde::Deserialize;
 
 /// Sections that include one or more choices will present a menu to the player
@@ -36,40 +35,17 @@ pub struct Dialogue {
 }
 
 impl Dialogue {
-    pub fn from_slice(bytes: &[u8]) -> Result<Dialogue, Error> {
-        let mut dialogue: Dialogue = toml::from_slice(&bytes)?;
+    pub fn from_slice(bytes: &[u8]) -> Result<Dialogue> {
+        let mut dialogue: Dialogue = toml::from_slice(bytes)?;
         for passage in dialogue
             .passage_groups
             .iter_mut()
             .flat_map(|x| x.passages.iter_mut())
         {
-            *passage = reflow_text(&passage);
+            *passage = reflow_text(passage);
         }
 
         Ok(dialogue)
-    }
-}
-
-/// A handle to a `Dialogue` asset.
-pub type DialogueHandle = Handle<Dialogue>;
-
-impl Asset for Dialogue {
-    const NAME: &'static str = "talkie::dialogue::Dialogue";
-    type Data = Self;
-    type HandleStorage = HashMapStorage<DialogueHandle>;
-}
-
-/// Format for loading from `.dialogue` files.
-#[derive(Clone, Copy, Debug, Default)]
-pub struct DialogueFormat;
-
-impl Format<Dialogue> for DialogueFormat {
-    fn name(&self) -> &'static str {
-        "DialogueFormat"
-    }
-
-    fn import_simple(&self, bytes: Vec<u8>) -> Result<Dialogue, Error> {
-        Ok(Dialogue::from_slice(&bytes)?)
     }
 }
 
@@ -91,9 +67,48 @@ fn reflow_text(input: &str) -> String {
     })
 }
 
+/// Given some amount of time, use the rate to determine how much of the time
+/// went unused and how many glyphs should now be revealed.
+pub(crate) fn calc_glyphs_to_reveal(delta_secs: f32, glyphs_per_sec: f32) -> (usize, f32) {
+    let reveal_how_many = (delta_secs * glyphs_per_sec).trunc();
+    let remainder = delta_secs - (reveal_how_many / glyphs_per_sec);
+    (reveal_how_many as usize, remainder)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use assert_approx_eq::assert_approx_eq;
+
+    /// If the delta is not big enough to reveal at least one glyph, then the
+    /// remainder should be the entire delta.
+    #[test]
+    fn test_delta_carries_over() {
+        let (count, remainder) = calc_glyphs_to_reveal(1.0, 0.5);
+        assert_eq!(0, count);
+        assert_approx_eq!(1.0, remainder);
+    }
+
+    #[test]
+    fn test_delta_zero_when_glyph_revealed() {
+        let (count, remainder) = calc_glyphs_to_reveal(2.0, 0.5);
+        assert_eq!(1, count);
+        assert_approx_eq!(0.0, remainder);
+    }
+
+    #[test]
+    fn test_delta_remainder_when_glyph_revealed() {
+        let (count, remainder) = calc_glyphs_to_reveal(2.2, 0.5);
+        assert_eq!(1, count);
+        assert_approx_eq!(0.2, remainder);
+    }
+
+    #[test]
+    fn test_multi_glyph_remainder() {
+        let (count, remainder) = calc_glyphs_to_reveal(5.2, 2.0);
+        assert_eq!(10, count);
+        assert_approx_eq!(0.2, remainder);
+    }
 
     #[test]
     fn test_reflow_single_line() {
@@ -106,9 +121,9 @@ mod tests {
             "abc def ",
             reflow_text(
                 "
-                abc
-                def
-                "
+            abc
+            def
+            "
                 .trim()
             )
         );
@@ -123,12 +138,12 @@ ghi jkl \
 ",
             reflow_text(
                 "
-        abc
-        def
-        
-        ghi
-        jkl
-        "
+    abc
+    def
+    
+    ghi
+    jkl
+    "
                 .trim()
             )
         );
